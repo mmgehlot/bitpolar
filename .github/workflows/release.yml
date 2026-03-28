@@ -399,3 +399,4 @@ jobs:
             artifacts/**/*.node
             artifacts/**/*.jar
             artifacts/**/*.tar.gz
+# v0.3.2
