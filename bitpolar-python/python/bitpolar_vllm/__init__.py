@@ -14,4 +14,4 @@ Provides KV cache compression for transformer attention layers.
 from bitpolar_vllm.quantizer import KVCacheQuantizer
 
 __all__ = ["KVCacheQuantizer"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

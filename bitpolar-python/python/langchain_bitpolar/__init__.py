@@ -17,4 +17,4 @@ Usage:
 from langchain_bitpolar.vectorstore import BitPolarVectorStore
 
 __all__ = ["BitPolarVectorStore"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

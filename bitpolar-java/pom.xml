@@ -6,7 +6,7 @@
 
     <groupId>io.github.mmgehlot</groupId>
     <artifactId>bitpolar</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
     <packaging>jar</packaging>
 
     <name>BitPolar</name>

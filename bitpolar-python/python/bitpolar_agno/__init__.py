@@ -10,4 +10,4 @@ Usage:
 from bitpolar_agno.knowledge import BitPolarKnowledgeBase
 
 __all__ = ["BitPolarKnowledgeBase"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

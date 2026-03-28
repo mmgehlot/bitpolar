@@ -22,4 +22,4 @@ __all__ = [
     "quantize_embedding",
     "quantize_kv_cache",
 ]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

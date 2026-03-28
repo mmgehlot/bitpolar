@@ -13,4 +13,4 @@ Usage:
 from bitpolar_onnx.quantizer import BitPolarONNXQuantizer
 
 __all__ = ["BitPolarONNXQuantizer"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

@@ -1,6 +1,6 @@
 [package]
 name = "bitpolar-pg"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "PostgreSQL extension for BitPolar vector quantization — companion to pgvector"
 license = "MIT OR Apache-2.0"
@@ -18,5 +18,5 @@ pg17 = ["pgrx/pg17"]
 
 [dependencies]
 pgrx = "0.12"
-bitpolar = { path = "..", version = "0.3.1" }
+bitpolar = { path = "..", version = "0.3.2" }
 serde_json = "1"

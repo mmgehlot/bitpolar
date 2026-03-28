@@ -13,4 +13,4 @@ Usage:
 from bitpolar_mlx.quantizer import BitPolarMLXQuantizer
 
 __all__ = ["BitPolarMLXQuantizer"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

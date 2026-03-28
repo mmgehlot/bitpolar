@@ -22,4 +22,4 @@ __all__ = [
     "compress_tensor",
     "decompress_tensor",
 ]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

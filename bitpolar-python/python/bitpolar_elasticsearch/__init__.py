@@ -10,4 +10,4 @@ Usage:
 from bitpolar_elasticsearch.store import BitPolarElasticsearchStore
 
 __all__ = ["BitPolarElasticsearchStore"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

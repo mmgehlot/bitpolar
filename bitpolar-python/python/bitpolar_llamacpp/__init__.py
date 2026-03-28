@@ -13,4 +13,4 @@ Usage:
 from bitpolar_llamacpp.kv_cache import BitPolarLlamaCppCache
 
 __all__ = ["BitPolarLlamaCppCache"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"

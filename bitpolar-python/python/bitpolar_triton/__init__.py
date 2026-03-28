@@ -12,4 +12,4 @@ Usage:
 from bitpolar_triton.backend import BitPolarTritonBackend, BitPolarTritonClient
 
 __all__ = ["BitPolarTritonBackend", "BitPolarTritonClient"]
-__version__ = "0.3.1"
+__version__ = "0.3.2"
