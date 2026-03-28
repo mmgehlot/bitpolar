@@ -1,0 +1,402 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  # =========================================================================
+  # 1. Publish Rust crates to crates.io
+  # =========================================================================
+  publish-crates:
+    name: Publish to crates.io
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish bitpolar (core)
+      - name: Regenerate Cargo.lock
+        run: cargo generate-lockfile
+        run: cargo publish -p bitpolar --allow-dirty || echo "Already published — skipping"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish bitpolar-cli
+        run: cargo publish -p bitpolar-cli --allow-dirty || echo "Already published — skipping"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # =========================================================================
+  # 2. Build and publish Python wheels to PyPI
+  # =========================================================================
+  publish-pypi:
+    name: Publish to PyPI
+    needs: publish-crates
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on:
+  workflow_dispatch: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version:
+  workflow_dispatch: '3.12'
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build wheel
+        working-directory: bitpolar-python
+        run: maturin build --release --strip
+
+      - name: Publish to PyPI
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: bitpolar-python
+        run: maturin publish
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: bitpolar-python/target/wheels/*.whl
+          retention-days: 30
+
+  # =========================================================================
+  # 3. Build and publish WASM package to npm
+  # =========================================================================
+  publish-npm-wasm:
+    name: Publish WASM to npm
+    needs: publish-crates
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version:
+  workflow_dispatch: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        working-directory: .
+
+      - name: Build WASM
+        run: wasm-pack build bitpolar-wasm --target web
+
+      - name: Publish to npm
+        working-directory: bitpolar-wasm/pkg
+        run: npm publish --access=public || echo "Already published — skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # =========================================================================
+  # 4. Build and publish Node.js native package to npm
+  # =========================================================================
+  publish-npm-node:
+    name: Publish Node.js to npm
+    needs: publish-crates
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on:
+  workflow_dispatch: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version:
+  workflow_dispatch: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        working-directory: bitpolar-node
+        run: npm install
+
+      - name: Build native module
+        working-directory: bitpolar-node
+        run: npx napi build --release --target ${{ matrix.target }}
+
+      - name: Prepare for publish
+        working-directory: bitpolar-node
+        run: npx napi prepublish -t npm
+
+      - name: Publish to npm
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: bitpolar-node
+        run: npm publish --access=public || echo "Already published — skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.target }}
+          path: bitpolar-node/**/*.node
+          retention-days: 30
+
+  # =========================================================================
+  # 5. Build Docker image for gRPC server
+  # =========================================================================
+  publish-docker:
+    name: Publish Docker image
+    needs: publish-crates
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: bitpolar-server/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bitpolar-server:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/bitpolar-server:latest
+
+  # =========================================================================
+  # 6. Build C static library + header for GitHub Release
+  # =========================================================================
+  publish-c-library:
+    name: Build C library
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: libbitpolar.a
+          - os: macos-latest
+            artifact: libbitpolar.a
+          - os: windows-latest
+            artifact: bitpolar.lib
+    runs-on:
+  workflow_dispatch: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build static library
+        run: cargo build --release --features ffi
+
+      - name: Generate C header
+        run: |
+          cargo install cbindgen --version 0.27.0 --locked
+          cbindgen --config cbindgen.toml --crate bitpolar --output bitpolar.h
+
+      - name: Upload C library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: c-library-${{ matrix.os }}
+          path: |
+            target/release/${{ matrix.artifact }}
+            bitpolar.h
+          retention-days: 30
+
+  # =========================================================================
+  # 7. Build and publish Java JAR to Maven Central
+  # =========================================================================
+  publish-maven:
+    name: Publish to Maven Central
+    needs: publish-crates
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution:
+  workflow_dispatch: 'temurin'
+          java-version:
+  workflow_dispatch: '17'
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Build JNI native library
+        run: cargo build --release -p bitpolar-jni
+
+      - name: Prepare native library for JAR
+        working-directory: bitpolar-java
+        run: |
+          mkdir -p src/main/resources/native/linux/x86_64
+          JNI_LIB="../target/release/libbitpolar_jni.so"
+          if [ -f "$JNI_LIB" ]; then
+            cp "$JNI_LIB" src/main/resources/native/linux/x86_64/
+          else
+            echo "ERROR: JNI library not found at $JNI_LIB" && ls -la ../target/release/lib* && exit 1
+          fi
+
+      - name: Publish to Maven Central
+        working-directory: bitpolar-java
+        run: mvn deploy -P release -DskipTests
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-jar
+          path: bitpolar-java/target/bitpolar-*.jar
+          retention-days: 30
+
+  # =========================================================================
+  # 8. Build PostgreSQL extension packages
+  # =========================================================================
+  publish-pgx:
+    name: Build PostgreSQL extension
+    needs: publish-crates
+    strategy:
+      matrix:
+        pg: ['16', '17']
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install PostgreSQL ${{ matrix.pg }}
+        run: |
+          sudo apt-get install -y wget gnupg
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
+          sudo sh -c 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-${{ matrix.pg }} postgresql-server-dev-${{ matrix.pg }}
+        working-directory: .
+
+      - name: Install cargo-pgrx
+        run: cargo install cargo-pgrx --version 0.12.9 --locked
+
+      - name: Initialize pgrx for PostgreSQL ${{ matrix.pg }}
+        run: cargo pgrx init --pg${{ matrix.pg }}=$(which pg_config)
+
+      - name: Build extension
+        working-directory: bitpolar-pg
+        run: cargo pgrx package --features pg${{ matrix.pg }}
+
+      - name: Package extension
+        working-directory: bitpolar-pg
+        run: |
+          PKG_DIR="target/release/bitpolar-pg-pg${{ matrix.pg }}"
+          if [ -d "$PKG_DIR" ]; then
+            tar czf bitpolar-pg-${{ matrix.pg }}-linux-amd64.tar.gz -C "$PKG_DIR" .
+          else
+            echo "WARNING: Package directory not found at $PKG_DIR" && ls -la target/release/ && exit 1
+          fi
+
+      - name: Upload pgx artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgx-pg${{ matrix.pg }}
+          path: bitpolar-pg/bitpolar-pg-*.tar.gz
+          retention-days: 30
+
+  # =========================================================================
+  # 9. Tag Go module (Go uses git tags, no registry upload)
+  # =========================================================================
+  publish-go:
+    name: Publish Go module
+    needs: publish-c-library
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Go module tag must match the module path relative to repo root
+      - name: Create Go module tag
+        working-directory: .
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          git tag "bitpolar-go/${VERSION}" || echo "Tag already exists"
+          git push origin "bitpolar-go/${VERSION}" || echo "Tag already pushed"
+
+  # =========================================================================
+  # 10. Create GitHub Release with all artifacts
+  # =========================================================================
+  github-release:
+    name: Create GitHub Release
+    needs:
+      - publish-crates
+      - publish-pypi
+      - publish-npm-wasm
+      - publish-npm-node
+      - publish-c-library
+      - publish-maven
+      - publish-pgx
+      - publish-go
+      - publish-docker
+    runs-on:
+  workflow_dispatch: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.whl
+            artifacts/**/*.a
+            artifacts/**/*.lib
+            artifacts/**/*.h
+            artifacts/**/*.node
+            artifacts/**/*.jar
+            artifacts/**/*.tar.gz
+# v0.3.2
