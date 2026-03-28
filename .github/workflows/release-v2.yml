@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -14,8 +15,7 @@ jobs:
   # =========================================================================
   publish-crates:
     name: Publish to crates.io
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -31,7 +31,7 @@ jobs:
         run: sleep 30
 
       - name: Publish bitpolar-cli
-        run: cargo publish -p bitpolar-cli --allow-dirty || echo "Already published — skipping"
+        run: cargo publish -p bitpolar-cli || echo "Already published — skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -44,15 +44,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on:
-  workflow_dispatch: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version:
-  workflow_dispatch: '3.12'
+          python-version: '3.12'
 
       - name: Install maturin
         run: pip install maturin
@@ -81,8 +79,7 @@ jobs:
   publish-npm-wasm:
     name: Publish WASM to npm
     needs: publish-crates
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -91,8 +88,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version:
-  workflow_dispatch: '20'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install wasm-pack
@@ -100,7 +96,7 @@ jobs:
         working-directory: .
 
       - name: Build WASM
-        run: wasm-pack build bitpolar-wasm --target web
+        run: wasm-pack build bitpolar-wasm --target web --scope mmgehlot
 
       - name: Publish to npm
         working-directory: bitpolar-wasm/pkg
@@ -125,8 +121,7 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-    runs-on:
-  workflow_dispatch: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -135,8 +130,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version:
-  workflow_dispatch: '20'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -171,11 +165,7 @@ jobs:
   publish-docker:
     name: Publish Docker image
     needs: publish-crates
-    runs-on:
-  workflow_dispatch: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -190,7 +180,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ..
           file: bitpolar-server/Dockerfile
           push: true
           tags: |
@@ -211,8 +201,7 @@ jobs:
             artifact: libbitpolar.a
           - os: windows-latest
             artifact: bitpolar.lib
-    runs-on:
-  workflow_dispatch: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -240,18 +229,15 @@ jobs:
   publish-maven:
     name: Publish to Maven Central
     needs: publish-crates
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/setup-java@v4
         with:
-          distribution:
-  workflow_dispatch: 'temurin'
-          java-version:
-  workflow_dispatch: '17'
+          distribution: 'temurin'
+          java-version: '17'
           server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
@@ -296,8 +282,7 @@ jobs:
     strategy:
       matrix:
         pg: ['16', '17']
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -308,7 +293,7 @@ jobs:
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
           sudo sh -c 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
-          sudo apt-get install -y postgresql-${{ matrix.pg }} postgresql-server-dev-${{ matrix.pg }}
+          sudo apt-get install -y postgresql-server-dev-${{ matrix.pg }}
         working-directory: .
 
       - name: Install cargo-pgrx
@@ -344,8 +329,7 @@ jobs:
   publish-go:
     name: Publish Go module
     needs: publish-c-library
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -374,8 +358,7 @@ jobs:
       - publish-pgx
       - publish-go
       - publish-docker
-    runs-on:
-  workflow_dispatch: ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -398,4 +381,3 @@ jobs:
             artifacts/**/*.node
             artifacts/**/*.jar
             artifacts/**/*.tar.gz
-# v0.3.2
