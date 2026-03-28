@@ -23,7 +23,7 @@ nalgebra = { version = "0.34", default-features = false, features = ["std"], opt
 # Deterministic random number generation
 rand = "0.8"
 rand_chacha = "0.3"
-rand_distr = "0.4"
+rand_distr = "0.6"
 
 # Serialization (optional — behind serde feature)
 serde = { version = "1", features = ["derive"], optional = true }
