@@ -1,0 +1,15 @@
+[package]
+name = "bitpolar-jni"
+version = "0.2.0"
+edition = "2021"
+description = "JNI bridge for BitPolar — connects Java native methods to Rust"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mmgehlot/bitpolar"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+jni = "0.21"
+bitpolar = { path = "..", features = ["std"] }

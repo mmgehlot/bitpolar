@@ -1,0 +1,48 @@
+# Rust / Cargo
+/target/
+**/*.rs.bk
+*.pdb
+# Note: Cargo.lock IS committed for reproducible CI (cargo audit needs it)
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+*.d
+*.o
+*.so
+*.dylib
+*.dll
+
+# Coverage
+*.profraw
+*.profdata
+tarpaulin-report.html
+lcov.info
+
+# Benchmarks output
+criterion/
+
+# Python bindings (maturin)
+*.whl
+*.egg-info/
+__pycache__/
+dist/
+build/
+*.so
+
+# Node.js bindings (napi)
+node_modules/
+*.node
+
+# WASM
+pkg/
+
+# Environment
+.env
+.env.local

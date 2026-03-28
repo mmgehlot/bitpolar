@@ -1,0 +1,16 @@
+[package]
+name = "bitpolar-python"
+version = "0.2.0"
+edition = "2021"
+description = "Python bindings for BitPolar vector quantization (PyO3 + maturin)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mmgehlot/bitpolar"
+
+[lib]
+name = "bitpolar"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"] }
+numpy = "0.23"
+bitpolar-core = { path = "..", package = "bitpolar" }

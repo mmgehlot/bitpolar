@@ -1,0 +1,27 @@
+[package]
+name = "bitpolar-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+bitpolar = { path = ".." }
+
+[[bin]]
+name = "fuzz_turbo_encode"
+path = "fuzz_targets/fuzz_turbo_encode.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_compact_deser"
+path = "fuzz_targets/fuzz_compact_deser.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_qjl_sketch"
+path = "fuzz_targets/fuzz_qjl_sketch.rs"
+doc = false

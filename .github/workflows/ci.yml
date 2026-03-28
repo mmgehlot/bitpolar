@@ -1,0 +1,134 @@
+name: CI
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, ${{ matrix.rust }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, nightly]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo test --all-features
+      - run: cargo test --no-default-features
+      - run: cargo test --features ffi
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all-features -- -D warnings
+
+  doc:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  wasm:
+    name: WASM Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        working-directory: .
+      - run: wasm-pack build bitpolar-wasm --target web
+
+  # Integration test: build Python wheel and verify import
+  python-integration:
+    name: Python Integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install maturin
+        run: pip install maturin numpy
+      - name: Build and install wheel
+        working-directory: bitpolar-python
+        run: maturin develop --release
+      - name: Run integration test
+        working-directory: bitpolar-python
+        run: |
+          python3 -c "
+          import bitpolar
+          import numpy as np
+          q = bitpolar.TurboQuantizer(dim=64, bits=4, projections=16, seed=42)
+          vec = np.random.randn(64).astype(np.float32)
+          code = q.encode(vec)
+          decoded = q.decode(code)
+          score = q.inner_product(code, vec)
+          assert len(decoded) == 64, f'Expected 64, got {len(decoded)}'
+          assert np.isfinite(score), f'Score not finite: {score}'
+          print(f'OK: encode/decode/IP roundtrip passed (score={score:.4f})')
+          "
+
+  # Integration test: build Node.js native module and verify require
+  node-integration:
+    name: Node.js Integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install and build
+        working-directory: bitpolar-node
+        run: |
+          npm install
+          npx napi build --release
+      - name: Run integration test
+        working-directory: bitpolar-node
+        run: |
+          node -e "
+          const { TurboQuantizer, VectorIndex } = require('./index.js');
+          const q = new TurboQuantizer(64, 4, 16, 42);
+          const vec = new Float32Array(64).fill(0.1);
+          const code = q.encode(vec);
+          const decoded = q.decode(code);
+          const score = q.innerProduct(code, vec);
+          console.log('OK: Node.js encode/decode/IP roundtrip passed (score=' + score.toFixed(4) + ')');
+          const idx = new VectorIndex(64, 4, 16, 42);
+          idx.add(0, vec);
+          idx.add(1, new Float32Array(64).fill(0.2));
+          const results = idx.search(vec, 2);
+          console.log('OK: VectorIndex search returned', results.length, 'results');
+          "

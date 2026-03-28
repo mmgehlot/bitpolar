@@ -1,0 +1,9 @@
+[book]
+title = "BitPolar Documentation"
+authors = ["Manmohan Gehlot"]
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "coal"
+git-repository-url = "https://github.com/mmgehlot/bitpolar"

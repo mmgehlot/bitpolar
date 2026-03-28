@@ -1,0 +1,96 @@
+syntax = "proto3";
+package bitpolar.v1;
+
+// BitPolar Vector Compression Service
+// Provides unary and streaming RPCs for vector quantization.
+service VectorCompression {
+    // Encode a batch of vectors to compressed codes
+    rpc Encode(EncodeRequest) returns (EncodeResponse);
+
+    // Decode compressed codes back to approximate vectors
+    rpc Decode(DecodeRequest) returns (DecodeResponse);
+
+    // Search compressed index for nearest neighbors
+    rpc Search(SearchRequest) returns (SearchResponse);
+
+    // Add vectors to the index
+    rpc AddVectors(AddVectorsRequest) returns (AddVectorsResponse);
+
+    // Health check
+    rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message EncodeRequest {
+    // Flat float array: n_vectors * dim elements
+    repeated float vectors = 1 [packed = true];
+    // Vector dimension
+    uint32 dim = 2;
+    // Number of vectors (vectors.len() / dim)
+    uint32 count = 3;
+    // Quantization bits (3-8)
+    uint32 bits = 4;
+    // Random seed
+    uint64 seed = 5;
+}
+
+message EncodeResponse {
+    // Compressed codes as compact bytes
+    repeated bytes codes = 1;
+    // Original size in bytes
+    uint64 original_size = 2;
+    // Compressed size in bytes
+    uint64 compressed_size = 3;
+}
+
+message DecodeRequest {
+    // Compressed codes from EncodeResponse
+    repeated bytes codes = 1;
+    // Vector dimension
+    uint32 dim = 2;
+    // Quantization bits
+    uint32 bits = 3;
+    // Random seed (must match encode)
+    uint64 seed = 4;
+}
+
+message DecodeResponse {
+    // Decoded float vectors: count * dim elements
+    repeated float vectors = 1 [packed = true];
+    uint32 dim = 2;
+    uint32 count = 3;
+}
+
+message SearchRequest {
+    // Query vector
+    repeated float query = 1 [packed = true];
+    // Number of results
+    uint32 k = 2;
+}
+
+message SearchResponse {
+    repeated SearchResult results = 1;
+}
+
+message SearchResult {
+    uint64 id = 1;
+    float score = 2;
+}
+
+message AddVectorsRequest {
+    repeated uint64 ids = 1;
+    // Flat float array: count * dim
+    repeated float vectors = 2 [packed = true];
+    uint32 dim = 3;
+}
+
+message AddVectorsResponse {
+    uint64 count = 1;
+    bool success = 2;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+    string status = 1;
+    uint64 index_size = 2;
+}

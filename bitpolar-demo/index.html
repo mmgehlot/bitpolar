@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitPolar — Live Vector Quantization Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a; color: #e0e0e0;
+            min-height: 100vh; padding: 2rem;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        h1 span { color: #6366f1; }
+        .subtitle { color: #888; margin-bottom: 2rem; }
+        .card {
+            background: #1a1a1a; border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 1.5rem;
+            border: 1px solid #333;
+        }
+        .card h2 { font-size: 1.2rem; margin-bottom: 1rem; color: #fff; }
+        .stats {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat { text-align: center; }
+        .stat .value { font-size: 1.8rem; font-weight: 700; color: #6366f1; }
+        .stat .label { font-size: 0.8rem; color: #888; }
+        button {
+            background: #6366f1; color: white; border: none;
+            padding: 0.8rem 1.5rem; border-radius: 8px;
+            font-size: 1rem; cursor: pointer; margin-top: 1rem;
+        }
+        button:hover { background: #5558e6; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .progress {
+            width: 100%; height: 8px; background: #222;
+            border-radius: 4px; overflow: hidden; margin-top: 1rem;
+        }
+        .progress-bar {
+            height: 100%; background: #6366f1;
+            transition: width 0.3s ease;
+        }
+        .results { margin-top: 1rem; }
+        .result-item {
+            display: flex; justify-content: space-between;
+            padding: 0.5rem 0; border-bottom: 1px solid #222;
+        }
+        .result-item .score { color: #6366f1; font-weight: 600; }
+        #status { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
+        .controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        select, input[type="number"] {
+            background: #111; border: 1px solid #333; color: #e0e0e0;
+            padding: 0.5rem; border-radius: 6px;
+        }
+        label { font-size: 0.85rem; color: #aaa; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bit<span>Polar</span></h1>
+        <p class="subtitle">Near-optimal vector quantization — running in your browser via WebAssembly</p>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="value" id="stat-vectors">0</div>
+                <div class="label">Vectors</div>
+            </div>
+            <div class="stat">
+                <div class="value" id="stat-ratio">--</div>
+                <div class="label">Compression</div>
+            </div>
+            <div class="stat">
+                <div class="value" id="stat-encode">--</div>
+                <div class="label">Encode (ms)</div>
+            </div>
+            <div class="stat">
+                <div class="value" id="stat-search">--</div>
+                <div class="label">Search (ms)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>1. Generate & Compress Vectors</h2>
+            <div class="controls">
+                <div>
+                    <label>Vectors:</label>
+                    <input type="number" id="n-vectors" value="500" min="10" max="100000" step="100">
+                </div>
+                <div>
+                    <label>Dimension:</label>
+                    <select id="dim">
+                        <option value="64">64</option>
+                        <option value="128">128</option>
+                        <option value="256">256</option>
+                        <option value="384" selected>384</option>
+                        <option value="768">768</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Bits:</label>
+                    <select id="bits">
+                        <option value="3">3 (max compression)</option>
+                        <option value="4" selected>4 (recommended)</option>
+                        <option value="6">6 (high quality)</option>
+                        <option value="8">8 (near-lossless)</option>
+                    </select>
+                </div>
+            </div>
+            <button id="btn-generate" onclick="generateAndCompress()">Generate & Compress</button>
+            <div class="progress" id="progress-container" style="display:none">
+                <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+            </div>
+            <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>2. Search</h2>
+            <p style="color:#888; font-size:0.9rem; margin-bottom:0.5rem">
+                Approximate inner product on compressed vectors (no decompression needed)
+            </p>
+            <button id="btn-search" onclick="searchRandom()" disabled>Search Random Query (Top 5)</button>
+            <div class="results" id="results"></div>
+        </div>
+
+        <div class="card" style="text-align:center; padding:2rem">
+            <p style="color:#666">
+                Powered by <a href="https://github.com/mmgehlot/bitpolar" style="color:#6366f1">BitPolar</a>
+                — Rust compiled to WebAssembly
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import BitPolar WASM module.
+        // When served alongside the wasm-pack output (bitpolar-wasm/pkg/),
+        // this loads the real compiled WASM binary.
+        // Falls back to a CDN build if available.
+        let wasm = null;
+        let wasmIndex = null;
+        let currentDim = 0;
+
+        async function initWasm() {
+            const status = document.getElementById('status');
+            try {
+                // Try local pkg/ first (for development / GitHub Pages)
+                const mod = await import('./pkg/bitpolar_wasm.js');
+                await mod.default();
+                wasm = mod;
+                status.textContent = 'WASM module loaded successfully.';
+                return true;
+            } catch (e1) {
+                try {
+                    // Fallback: npm CDN
+                    const mod = await import('https://unpkg.com/@mmgehlot/bitpolar-wasm@latest/bitpolar_wasm.js');
+                    await mod.default();
+                    wasm = mod;
+                    status.textContent = 'WASM module loaded from CDN.';
+                    return true;
+                } catch (e2) {
+                    status.innerHTML = '<span class="error">WASM module not found. Build with: <code>wasm-pack build bitpolar-wasm --target web</code> and copy pkg/ here.</span>';
+                    return false;
+                }
+            }
+        }
+
+        initWasm();
+
+        window.generateAndCompress = async function() {
+            const n = parseInt(document.getElementById('n-vectors').value);
+            const dim = parseInt(document.getElementById('dim').value);
+            const bits = parseInt(document.getElementById('bits').value);
+
+            const btn = document.getElementById('btn-generate');
+            const status = document.getElementById('status');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+
+            if (!wasm) {
+                const loaded = await initWasm();
+                if (!loaded) return;
+            }
+
+            btn.disabled = true;
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '10%';
+            status.textContent = 'Generating random vectors...';
+
+            // Yield to browser for UI update
+            await new Promise(r => setTimeout(r, 0));
+
+            // Generate random vectors
+            const vectors = [];
+            for (let i = 0; i < n; i++) {
+                const v = new Float32Array(dim);
+                for (let j = 0; j < dim; j++) {
+                    v[j] = (Math.random() - 0.5) * 2;
+                }
+                vectors.push(v);
+            }
+            progressBar.style.width = '30%';
+            status.textContent = `Compressing ${n} vectors (${dim}D, ${bits}-bit) via WASM...`;
+            await new Promise(r => setTimeout(r, 0));
+
+            // Create WASM index and add all vectors
+            const projections = Math.max(Math.floor(dim / 4), 1);
+            const startEncode = performance.now();
+
+            try {
+                wasmIndex = new wasm.WasmVectorIndex(dim, bits, projections, BigInt(42));
+                currentDim = dim;
+
+                let originalBytes = 0;
+                let compressedBytes = 0;
+
+                for (let i = 0; i < n; i++) {
+                    wasmIndex.add(i, vectors[i]);
+                    originalBytes += dim * 4;
+                    if (i % Math.max(1, Math.floor(n / 10)) === 0) {
+                        progressBar.style.width = (30 + (i / n) * 60) + '%';
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                const encodeMs = performance.now() - startEncode;
+                progressBar.style.width = '100%';
+
+                // Get compressed size by encoding one vector
+                const q = new wasm.WasmQuantizer(dim, bits, projections, BigInt(42));
+                const codeSizeBytes = q.code_size_bytes();
+                compressedBytes = n * codeSizeBytes;
+
+                const ratio = (originalBytes / Math.max(compressedBytes, 1)).toFixed(1);
+
+                document.getElementById('stat-vectors').textContent = n.toLocaleString();
+                document.getElementById('stat-ratio').textContent = ratio + 'x';
+                document.getElementById('stat-encode').textContent = Math.round(encodeMs);
+
+                status.textContent = `Done! ${(originalBytes/1024/1024).toFixed(1)}MB -> ${(compressedBytes/1024/1024).toFixed(1)}MB (${ratio}x compression) in ${Math.round(encodeMs)}ms`;
+            } catch (err) {
+                status.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+            }
+
+            btn.disabled = false;
+            document.getElementById('btn-search').disabled = false;
+        };
+
+        window.searchRandom = function() {
+            if (!wasmIndex || !wasm) return;
+
+            const query = new Float32Array(currentDim);
+            for (let i = 0; i < currentDim; i++) {
+                query[i] = (Math.random() - 0.5) * 2;
+            }
+
+            const startSearch = performance.now();
+            let results;
+            try {
+                results = wasmIndex.search(query, 5);
+            } catch (err) {
+                document.getElementById('results').innerHTML =
+                    `<span class="error">Search error: ${err.message}</span>`;
+                return;
+            }
+            const searchMs = performance.now() - startSearch;
+
+            document.getElementById('stat-search').textContent = searchMs.toFixed(1);
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = results.map((id, i) =>
+                `<div class="result-item">
+                    <span>#${i+1} -- Vector ${id}</span>
+                    <span class="score">matched</span>
+                </div>`
+            ).join('');
+        };
+    </script>
+</body>
+</html>

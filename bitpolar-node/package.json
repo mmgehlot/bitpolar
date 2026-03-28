@@ -1,0 +1,41 @@
+{
+  "name": "@mmgehlot/bitpolar",
+  "version": "0.2.0",
+  "description": "Node.js bindings for BitPolar vector quantization — near-optimal 3-8 bit compression with zero training",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "bitpolar",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "aarch64-apple-darwin"
+      ]
+    }
+  },
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmgehlot/bitpolar"
+  },
+  "keywords": [
+    "vector",
+    "quantization",
+    "compression",
+    "similarity-search",
+    "embedding",
+    "napi-rs"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
+  "scripts": {
+    "build": "napi build --release",
+    "prepublishOnly": "napi prepublish -t npm"
+  }
+}

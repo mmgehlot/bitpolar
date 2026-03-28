@@ -1,0 +1,111 @@
+[workspace]
+members = [".", "bitpolar-wasm", "bitpolar-python", "bitpolar-cli", "bitpolar-server", "bitpolar-pg", "bitpolar-node", "bitpolar-jni"]
+resolver = "2"
+
+[package]
+name = "bitpolar"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+description = "BitPolar: near-optimal vector quantization with zero training overhead — 3-bit precision, provably unbiased inner products (ICLR 2026)"
+homepage = "https://github.com/mmgehlot/bitpolar"
+authors = ["BitPolar Contributors"]
+keywords = ["quantization", "vector-search", "kv-cache", "compression", "machine-learning"]
+categories = ["algorithms", "science", "compression"]
+repository = "https://github.com/mmgehlot/bitpolar"
+readme = "README.md"
+
+[dependencies]
+# Linear algebra for QR decomposition (Haar rotation)
+nalgebra = { version = "0.34", default-features = false, features = ["std"], optional = true }
+
+# Deterministic random number generation
+rand = "0.8"
+rand_chacha = "0.3"
+rand_distr = "0.4"
+
+# Serialization (optional — behind serde feature)
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+
+# Error handling
+thiserror = "2"
+
+# Math functions for no_std (sqrt, sin, cos, atan2)
+libm = "0.2"
+
+# Parallel batch operations (optional — behind rayon feature)
+rayon = { version = "1.10", optional = true }
+
+# Observability (optional — behind tracing feature)
+tracing = { version = "0.1", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.8", features = ["html_reports"] }
+proptest = "1"
+approx = "0.5"
+serde_json = "1"
+
+[features]
+# Default: std + serde (most users want serialization)
+default = ["std", "serde-support"]
+
+# Standard library support (enables nalgebra QR, std::error, HashMap)
+std = ["dep:nalgebra"]
+
+# Heap allocation without full std (Vec, String via alloc crate)
+alloc = []
+
+# Serde serialization for all code types
+serde-support = ["dep:serde", "dep:serde_json"]
+
+# Hand-tuned SIMD kernels (NEON on aarch64, AVX2 on x86_64)
+simd = []
+
+# Parallel batch operations via rayon
+parallel = ["dep:rayon"]
+
+# OpenTelemetry-compatible tracing instrumentation
+tracing-support = ["dep:tracing"]
+
+# C FFI exports (for cross-language bindings)
+ffi = []
+
+[[bench]]
+name = "quantization_bench"
+harness = false
+
+[[bench]]
+name = "search_bench"
+harness = false
+
+[[bench]]
+name = "dataset_bench"
+harness = false
+
+# --- Search Examples ---
+[[example]]
+name = "search_vector_database"
+[[example]]
+name = "search_brute_force"
+[[example]]
+name = "search_oversampled"
+
+# --- LLM / KV Cache Examples ---
+[[example]]
+name = "llm_kv_cache"
+[[example]]
+name = "llm_multi_head_cache"
+
+# --- Architecture Patterns ---
+[[example]]
+name = "pattern_multi_tenant"
+[[example]]
+name = "pattern_federated_search"
+
+# --- Integration Examples ---
+[[example]]
+name = "integration_tiered_storage"
+[[example]]
+name = "integration_adaptive"
