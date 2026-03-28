@@ -64,7 +64,7 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}
           path: bitpolar-python/target/wheels/*.whl
@@ -150,7 +150,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Upload native artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: node-${{ matrix.target }}
           path: bitpolar-node/**/*.node
@@ -212,7 +212,7 @@ jobs:
           cbindgen --config cbindgen.toml --crate bitpolar --output bitpolar.h
 
       - name: Upload C library artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: c-library-${{ matrix.os }}
           path: |
@@ -264,7 +264,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: java-jar
           path: bitpolar-java/target/bitpolar-*.jar
@@ -314,7 +314,7 @@ jobs:
           fi
 
       - name: Upload pgx artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pgx-pg${{ matrix.pg }}
           path: bitpolar-pg/bitpolar-pg-*.tar.gz
