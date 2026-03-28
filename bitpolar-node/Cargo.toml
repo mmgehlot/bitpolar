@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "2", features = ["napi8"] }
 napi-derive = "2"
-bitpolar = { path = ".." }
+bitpolar = { path = "..", version = "0.3.1" }
 
 [build-dependencies]
 napi-build = "2"

@@ -11,7 +11,7 @@ name = "bitpolar"
 path = "src/main.rs"
 
 [dependencies]
-bitpolar = { path = ".." }
+bitpolar = { path = "..", version = "0.3.1" }
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 serde_json = "1"

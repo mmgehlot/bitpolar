@@ -20,6 +20,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Publish bitpolar (core)
+      - name: Regenerate Cargo.lock
+        run: cargo generate-lockfile
         run: cargo publish -p bitpolar --allow-dirty || echo "Already published — skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

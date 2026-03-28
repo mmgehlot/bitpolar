@@ -18,5 +18,5 @@ pg17 = ["pgrx/pg17"]
 
 [dependencies]
 pgrx = "0.12"
-bitpolar = { path = ".." }
+bitpolar = { path = "..", version = "0.3.1" }
 serde_json = "1"
