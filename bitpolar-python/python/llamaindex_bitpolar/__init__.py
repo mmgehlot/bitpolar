@@ -12,4 +12,4 @@ Usage:
 from llamaindex_bitpolar.vectorstore import BitPolarVectorStore
 
 __all__ = ["BitPolarVectorStore"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

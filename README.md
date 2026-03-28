@@ -27,7 +27,18 @@ Compress embeddings to 3-8 bits with provably unbiased inner products and no cal
 - **Near-optimal** — distortion within ~2.7x of the Shannon rate-distortion limit
 - **Instant indexing** — vectors compress on arrival, 600x faster than Product Quantization
 
-## What's New in 0.2.0
+## What's New in 0.3.x
+
+- **58 integrations** — every major AI framework, vector database, and ML library
+- **PyTorch torchao** — embedding quantizer, BitPolarLinear, KV cache
+- **FAISS drop-in** — API-compatible IndexBitPolarIP/L2 replacement
+- **LlamaIndex, Haystack, DSPy** — VectorStore and Retriever integrations
+- **Agentic AI** — LangGraph, CrewAI, OpenAI Agents, Google ADK, SmolAgents, PydanticAI
+- **Agent memory** — Mem0, Zep, Letta backends
+- **11 vector databases** — Milvus, Weaviate, Pinecone, Redis, ES, DuckDB, SQLite, and more
+- **LLM inference** — llama.cpp, SGLang, TensorRT, Ollama, MLX KV cache compression
+- **ML frameworks** — JAX/Flax, TensorFlow/Keras, scikit-learn pipeline
+- **30 Python examples** covering all integrations
 
 - **Walsh-Hadamard Transform** — O(d log d) rotation with O(d) memory (577x less than Haar QR)
 - **Python bindings** — PyO3 + maturin, zero-copy numpy integration
@@ -40,7 +51,7 @@ Compress embeddings to 3-8 bits with provably unbiased inner products and no cal
 
 ```toml
 [dependencies]
-bitpolar = "0.2"
+bitpolar = "0.3"
 ```
 
 ```rust
@@ -104,11 +115,11 @@ index.add(0, vector);
 const results = index.search(query, 5);
 ```
 
-## Walsh-Hadamard Transform (New in 0.2.0)
+## Walsh-Hadamard Transform
 
 The WHT provides an O(d log d) alternative to Haar QR rotation:
 
-| Property | Haar QR (0.1.0) | Walsh-Hadamard (0.2.0) |
+| Property | Haar QR (0.1.x) | Walsh-Hadamard (0.2.x+) |
 |---|---|---|
 | Time complexity | O(d²) | O(d log d) |
 | Memory | O(d²) — 2.3 MB @ d=768 | O(d) — 4 KB @ d=768 |
@@ -302,7 +313,7 @@ BitPolar works on embedded/edge targets with `no_std`:
 
 ```toml
 [dependencies]
-bitpolar = { version = "0.2", default-features = false, features = ["alloc"] }
+bitpolar = { version = "0.3", default-features = false, features = ["alloc"] }
 ```
 
 Uses `libm` for math functions and `alloc` for `Vec`/`String`. The Walsh-Hadamard rotation is available without `std` (unlike Haar QR which requires `nalgebra`).

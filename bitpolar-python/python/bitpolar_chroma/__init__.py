@@ -10,4 +10,4 @@ Usage:
 from bitpolar_chroma.store import BitPolarChromaStore, BitPolarEmbeddingFunction
 
 __all__ = ["BitPolarChromaStore", "BitPolarEmbeddingFunction"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

@@ -10,4 +10,4 @@ Usage:
 from bitpolar_milvus.index import BitPolarMilvusIndex
 
 __all__ = ["BitPolarMilvusIndex"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

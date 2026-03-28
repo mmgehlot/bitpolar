@@ -13,4 +13,4 @@ Usage:
 from bitpolar_anthropic.server import BitPolarMCPServer
 
 __all__ = ["BitPolarMCPServer"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

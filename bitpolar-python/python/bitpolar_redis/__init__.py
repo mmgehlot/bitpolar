@@ -10,4 +10,4 @@ Usage:
 from bitpolar_redis.store import BitPolarRedisStore
 
 __all__ = ["BitPolarRedisStore"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

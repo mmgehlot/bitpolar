@@ -10,4 +10,4 @@ Usage:
 from bitpolar_smolagents.tool import BitPolarTool
 
 __all__ = ["BitPolarTool"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

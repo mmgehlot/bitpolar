@@ -13,4 +13,4 @@ Usage:
 from bitpolar_crewai.memory import BitPolarMemoryBackend
 
 __all__ = ["BitPolarMemoryBackend"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"

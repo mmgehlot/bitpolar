@@ -14,4 +14,4 @@ Usage:
 from bitpolar_vercel.middleware import BitPolarMiddleware
 
 __all__ = ["BitPolarMiddleware"]
-__version__ = "0.3.2"
+__version__ = "0.3.3"
