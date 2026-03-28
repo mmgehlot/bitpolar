@@ -2,10 +2,8 @@ name: Release
 
 on:
   workflow_dispatch:
-  workflow_dispatch:
   push:
     tags: ['v*']
-
 env:
   CARGO_TERM_COLOR: always
 
