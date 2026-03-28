@@ -13,4 +13,4 @@ Usage:
 from bitpolar_autogen.memory import BitPolarMemoryStore
 
 __all__ = ["BitPolarMemoryStore"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

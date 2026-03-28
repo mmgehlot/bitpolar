@@ -20,7 +20,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Publish bitpolar (core)
-        run: cargo publish -p bitpolar || echo "Already published — skipping"
+        run: cargo publish -p bitpolar --allow-dirty || echo "Already published — skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -28,7 +28,7 @@ jobs:
         run: sleep 30
 
       - name: Publish bitpolar-cli
-        run: cargo publish -p bitpolar-cli || echo "Already published — skipping"
+        run: cargo publish -p bitpolar-cli --allow-dirty || echo "Already published — skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -93,7 +93,7 @@ jobs:
         working-directory: .
 
       - name: Build WASM
-        run: wasm-pack build bitpolar-wasm --target web --scope mmgehlot
+        run: wasm-pack build bitpolar-wasm --target web
 
       - name: Publish to npm
         working-directory: bitpolar-wasm/pkg

@@ -13,4 +13,4 @@ Usage:
 from bitpolar_sglang.cache import BitPolarSGLangCache
 
 __all__ = ["BitPolarSGLangCache"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

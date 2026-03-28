@@ -13,4 +13,4 @@ Usage:
 from bitpolar_tensorrt.quantizer import BitPolarTRTQuantizer
 
 __all__ = ["BitPolarTRTQuantizer"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

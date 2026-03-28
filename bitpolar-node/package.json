@@ -1,6 +1,6 @@
 {
-  "name": "@mmgehlot/bitpolar",
-  "version": "0.3.0",
+  "name": "bitpolar-native",
+  "version": "0.3.1",
   "description": "Node.js bindings for BitPolar vector quantization — near-optimal 3-8 bit compression with zero training",
   "main": "index.js",
   "types": "index.d.ts",

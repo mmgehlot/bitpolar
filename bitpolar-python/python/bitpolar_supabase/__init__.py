@@ -10,4 +10,4 @@ Usage:
 from bitpolar_supabase.client import BitPolarSupabaseClient
 
 __all__ = ["BitPolarSupabaseClient"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

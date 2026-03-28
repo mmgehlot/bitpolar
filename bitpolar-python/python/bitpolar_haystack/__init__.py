@@ -10,4 +10,4 @@ from bitpolar_haystack.document_store import BitPolarDocumentStore
 from bitpolar_haystack.retriever import BitPolarRetriever
 
 __all__ = ["BitPolarDocumentStore", "BitPolarRetriever"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

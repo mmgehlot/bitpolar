@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bitpolar"
-version = "0.3.0"
+version = "0.3.1"
 requires-python = ">=3.9"
 dependencies = ["numpy>=1.21"]
 readme = "README.md"

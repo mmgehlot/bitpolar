@@ -10,4 +10,4 @@ Usage:
 from bitpolar_mem0.store import BitPolarVectorStore
 
 __all__ = ["BitPolarVectorStore"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"

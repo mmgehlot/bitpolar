@@ -16,4 +16,4 @@ from bitpolar_openai_agents.tools import (
 )
 
 __all__ = ["BitPolarAgentTool", "TOOL_DEFINITIONS", "handle_tool_call"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"
