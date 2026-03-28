@@ -221,7 +221,7 @@ fn bitpolar_compression_ratio(dim: i32, bits: default!(i32, 4)) -> f32 {
 /// Return BitPolar version string.
 #[pg_extern(immutable, parallel_safe)]
 fn bitpolar_version() -> &'static str {
-    "0.2.0"
+    "0.3.0"
 }
 
 // Extension SQL setup
@@ -281,6 +281,6 @@ mod tests {
 
     #[pg_test]
     fn test_version() {
-        assert_eq!(bitpolar_version(), "0.2.0");
+        assert_eq!(bitpolar_version(), "0.3.0");
     }
 }

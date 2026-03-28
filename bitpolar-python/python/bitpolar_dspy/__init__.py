@@ -11,4 +11,4 @@ Usage:
 from bitpolar_dspy.retriever import BitPolarRM
 
 __all__ = ["BitPolarRM"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

@@ -1,6 +1,6 @@
 {
   "name": "@mmgehlot/bitpolar-wasm",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "WebAssembly bindings for BitPolar vector quantization — run near-optimal compression in the browser",
   "license": "MIT OR Apache-2.0",
   "repository": {

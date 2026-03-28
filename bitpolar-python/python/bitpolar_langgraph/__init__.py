@@ -13,4 +13,4 @@ Usage:
 from bitpolar_langgraph.checkpointer import BitPolarCheckpointer
 
 __all__ = ["BitPolarCheckpointer"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

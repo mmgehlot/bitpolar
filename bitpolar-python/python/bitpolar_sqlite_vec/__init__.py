@@ -10,4 +10,4 @@ Usage:
 from bitpolar_sqlite_vec.store import BitPolarSQLiteStore
 
 __all__ = ["BitPolarSQLiteStore"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

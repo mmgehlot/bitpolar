@@ -10,4 +10,4 @@ Usage:
 from bitpolar_duckdb.store import BitPolarDuckDBStore
 
 __all__ = ["BitPolarDuckDBStore"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

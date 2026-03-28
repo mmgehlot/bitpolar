@@ -251,7 +251,7 @@ checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
 name = "bitpolar"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "approx",
  "criterion",
@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bitpolar",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-jni"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "jni",
@@ -291,7 +291,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-node"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "napi",
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-pg"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "pgrx",
@@ -310,7 +310,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-python"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "numpy",
@@ -319,7 +319,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-server"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "prost",
@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "bitpolar-wasm"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitpolar",
  "wasm-bindgen",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "cee-scape"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d67dfb052149f779f77e9ce089cea126e00657e8f0d11dafc7901fde4291101"
 dependencies = [
@@ -1762,7 +1762,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pathsearch"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da983bc5e582ab17179c190b4b66c7d76c5943a69c6d34df2a2b6bf8a2977b05"
 dependencies = [
@@ -2944,7 +2944,7 @@ dependencies = [
 
 [[package]]
 name = "tracing-log"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [

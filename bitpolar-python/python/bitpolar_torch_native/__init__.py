@@ -13,4 +13,4 @@ Usage:
 from bitpolar_torch_native.backend import BitPolarQuantizer
 
 __all__ = ["BitPolarQuantizer"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

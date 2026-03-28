@@ -4,23 +4,47 @@ build-backend = "maturin"
 
 [project]
 name = "bitpolar"
-version = "0.2.0"
+version = "0.3.0"
 requires-python = ">=3.9"
 dependencies = ["numpy>=1.21"]
-description = "Near-optimal vector quantization — no training, instant indexing, 3-bit precision"
+readme = "README.md"
+description = "Near-optimal vector quantization — compress embeddings to 3-8 bits with provably unbiased inner products. No training needed. 58 integrations."
 license = { text = "MIT OR Apache-2.0" }
-authors = [{ name = "Manmohan Gehlot" }]
-keywords = ["quantization", "vector-search", "compression", "machine-learning"]
+authors = [{ name = "Manmohan Gehlot", email = "mmgehlot@gmail.com" }]
+keywords = ["quantization", "vector-search", "compression", "machine-learning", "embeddings", "faiss", "langchain", "rag"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
 ]
 
 [project.urls]
+Homepage = "https://github.com/mmgehlot/bitpolar"
 Repository = "https://github.com/mmgehlot/bitpolar"
-Documentation = "https://docs.rs/bitpolar"
+Documentation = "https://github.com/mmgehlot/bitpolar#readme"
+Issues = "https://github.com/mmgehlot/bitpolar/issues"
+Changelog = "https://github.com/mmgehlot/bitpolar/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+torch = ["torch>=2.0"]
+langchain = ["langchain-core>=0.2"]
+llamaindex = ["llama-index-core>=0.11"]
+faiss = []
+chroma = ["chromadb>=0.5"]
+haystack = ["haystack-ai>=2.5"]
+sklearn = ["scikit-learn>=1.4"]
+all = ["torch>=2.0", "langchain-core>=0.2", "chromadb>=0.5", "scikit-learn>=1.4"]
 
 [tool.maturin]
 manifest-path = "Cargo.toml"

@@ -1,5 +1,5 @@
 comment = 'BitPolar: near-optimal vector quantization for PostgreSQL'
-default_version = '0.2.0'
+default_version = '0.3.0'
 module_pathname = '$libdir/bitpolar_pg'
 relocatable = false
 superuser = true

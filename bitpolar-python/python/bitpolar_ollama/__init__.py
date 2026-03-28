@@ -13,4 +13,4 @@ Usage:
 from bitpolar_ollama.client import BitPolarOllamaClient
 
 __all__ = ["BitPolarOllamaClient"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "bitpolar-cli"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Command-line tool for BitPolar vector quantization"
 license = "MIT OR Apache-2.0"

@@ -10,4 +10,4 @@ Usage:
 from bitpolar_pinecone.index import BitPolarPineconeIndex
 
 __all__ = ["BitPolarPineconeIndex"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

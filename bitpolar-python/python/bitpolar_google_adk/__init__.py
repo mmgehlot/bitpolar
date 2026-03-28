@@ -12,4 +12,4 @@ Usage:
 from bitpolar_google_adk.tool import BitPolarADKTool
 
 __all__ = ["BitPolarADKTool"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

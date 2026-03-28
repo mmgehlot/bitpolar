@@ -19,4 +19,4 @@ from bitpolar_finetune.trainer import QuantizationAwareTrainer
 from bitpolar_finetune.loss import QuantizationDistortionLoss
 
 __all__ = ["QuantizationAwareTrainer", "QuantizationDistortionLoss"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

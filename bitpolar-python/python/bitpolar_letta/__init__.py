@@ -10,4 +10,4 @@ Usage:
 from bitpolar_letta.archival import BitPolarArchivalMemory
 
 __all__ = ["BitPolarArchivalMemory"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

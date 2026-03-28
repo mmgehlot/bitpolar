@@ -1,6 +1,6 @@
 [package]
 name = "bitpolar-python"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Python bindings for BitPolar vector quantization (PyO3 + maturin)"
 license = "MIT OR Apache-2.0"

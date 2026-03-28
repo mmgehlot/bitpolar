@@ -1,6 +1,6 @@
 [package]
 name = "bitpolar-pg"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "PostgreSQL extension for BitPolar vector quantization — companion to pgvector"
 license = "MIT OR Apache-2.0"

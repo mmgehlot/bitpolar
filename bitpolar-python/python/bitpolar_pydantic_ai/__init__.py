@@ -27,4 +27,4 @@ __all__ = [
     "add_vector",
     "stats",
 ]
-__version__ = "0.2.0"
+__version__ = "0.3.0"
