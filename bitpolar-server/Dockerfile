@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM rust:1.84-slim AS builder
+FROM rust:latest AS builder
 
 WORKDIR /usr/src/bitpolar
 
