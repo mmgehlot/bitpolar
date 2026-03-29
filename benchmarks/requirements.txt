@@ -1,0 +1,7 @@
+numpy>=1.21
+faiss-cpu>=1.7
+h5py>=3.0
+requests>=2.28
+tqdm>=4.60
+psutil>=5.9
+tabulate>=0.9

@@ -1,0 +1,87 @@
+{
+  "config": {
+    "seed": 42,
+    "attention_fidelity": {
+      "n_heads": 32,
+      "seq_len": 512,
+      "head_dim": 128
+    },
+    "ip_preservation": {
+      "n_pairs": 10000,
+      "dim": 128
+    }
+  },
+  "attention_fidelity": [
+    {
+      "bits": 3,
+      "overall_cosine_similarity": 0.814336,
+      "mean_per_head_cosine_similarity": 0.81411,
+      "min_per_head_cosine_similarity": 0.796758
+    },
+    {
+      "bits": 4,
+      "overall_cosine_similarity": 0.920565,
+      "mean_per_head_cosine_similarity": 0.920429,
+      "min_per_head_cosine_similarity": 0.912653
+    },
+    {
+      "bits": 6,
+      "overall_cosine_similarity": 0.993138,
+      "mean_per_head_cosine_similarity": 0.99313,
+      "min_per_head_cosine_similarity": 0.99251
+    }
+  ],
+  "ip_preservation": [
+    {
+      "bits": 3,
+      "n_pairs": 10000,
+      "pearson_correlation": 0.667788,
+      "mse": 158.550102,
+      "mean_bias": -0.028142
+    },
+    {
+      "bits": 4,
+      "n_pairs": 10000,
+      "pearson_correlation": 0.824433,
+      "mse": 60.888568,
+      "mean_bias": -0.019617
+    },
+    {
+      "bits": 6,
+      "n_pairs": 10000,
+      "pearson_correlation": 0.9797,
+      "mse": 5.385352,
+      "mean_bias": 0.016629
+    }
+  ],
+  "compression_ratios": [
+    {
+      "bits": 3,
+      "original_bytes_per_kv": 1024,
+      "compressed_bytes_per_kv": 808,
+      "compression_ratio": 1.27,
+      "savings_pct": 21.09
+    },
+    {
+      "bits": 4,
+      "original_bytes_per_kv": 1024,
+      "compressed_bytes_per_kv": 808,
+      "compression_ratio": 1.27,
+      "savings_pct": 21.09
+    },
+    {
+      "bits": 6,
+      "original_bytes_per_kv": 1024,
+      "compressed_bytes_per_kv": 808,
+      "compression_ratio": 1.27,
+      "savings_pct": 21.09
+    },
+    {
+      "bits": 8,
+      "original_bytes_per_kv": 1024,
+      "compressed_bytes_per_kv": 808,
+      "compression_ratio": 1.27,
+      "savings_pct": 21.09
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "config": {
+    "n_vectors": 1000,
+    "dims": [
+      96,
+      128,
+      200,
+      384,
+      768,
+      1536
+    ],
+    "bits_list": [
+      3,
+      4,
+      6,
+      8
+    ],
+    "seed": 42
+  },
+  "results": [
+    {
+      "dim": 96,
+      "bits": 3,
+      "original_bytes": 384,
+      "compressed_bytes": 307.0,
+      "compression_ratio": 1.25,
+      "bits_per_dimension": 25.583
+    },
+    {
+      "dim": 96,
+      "bits": 4,
+      "original_bytes": 384,
+      "compressed_bytes": 307.0,
+      "compression_ratio": 1.25,
+      "bits_per_dimension": 25.583
+    },
+    {
+      "dim": 96,
+      "bits": 6,
+      "original_bytes": 384,
+      "compressed_bytes": 307.0,
+      "compression_ratio": 1.25,
+      "bits_per_dimension": 25.583
+    },
+    {
+      "dim": 96,
+      "bits": 8,
+      "original_bytes": 384,
+      "compressed_bytes": 307.0,
+      "compression_ratio": 1.25,
+      "bits_per_dimension": 25.583
+    },
+    {
+      "dim": 128,
+      "bits": 3,
+      "original_bytes": 512,
+      "compressed_bytes": 404.0,
+      "compression_ratio": 1.27,
+      "bits_per_dimension": 25.25
+    },
+    {
+      "dim": 128,
+      "bits": 4,
+      "original_bytes": 512,
+      "compressed_bytes": 404.0,
+      "compression_ratio": 1.27,
+      "bits_per_dimension": 25.25
+    },
+    {
+      "dim": 128,
+      "bits": 6,
+      "original_bytes": 512,
+      "compressed_bytes": 404.0,
+      "compression_ratio": 1.27,
+      "bits_per_dimension": 25.25
+    },
+    {
+      "dim": 128,
+      "bits": 8,
+      "original_bytes": 512,
+      "compressed_bytes": 404.0,
+      "compression_ratio": 1.27,
+      "bits_per_dimension": 25.25
+    },
+    {
+      "dim": 200,
+      "bits": 3,
+      "original_bytes": 800,
+      "compressed_bytes": 623.0,
+      "compression_ratio": 1.28,
+      "bits_per_dimension": 24.92
+    },
+    {
+      "dim": 200,
+      "bits": 4,
+      "original_bytes": 800,
+      "compressed_bytes": 623.0,
+      "compression_ratio": 1.28,
+      "bits_per_dimension": 24.92
+    },
+    {
+      "dim": 200,
+      "bits": 6,
+      "original_bytes": 800,
+      "compressed_bytes": 623.0,
+      "compression_ratio": 1.28,
+      "bits_per_dimension": 24.92
+    },
+    {
+      "dim": 200,
+      "bits": 8,
+      "original_bytes": 800,
+      "compressed_bytes": 623.0,
+      "compression_ratio": 1.28,
+      "bits_per_dimension": 24.92
+    },
+    {
+      "dim": 384,
+      "bits": 3,
+      "original_bytes": 1536,
+      "compressed_bytes": 1180.0,
+      "compression_ratio": 1.3,
+      "bits_per_dimension": 24.583
+    },
+    {
+      "dim": 384,
+      "bits": 4,
+      "original_bytes": 1536,
+      "compressed_bytes": 1180.0,
+      "compression_ratio": 1.3,
+      "bits_per_dimension": 24.583
+    },
+    {
+      "dim": 384,
+      "bits": 6,
+      "original_bytes": 1536,
+      "compressed_bytes": 1180.0,
+      "compression_ratio": 1.3,
+      "bits_per_dimension": 24.583
+    },
+    {
+      "dim": 384,
+      "bits": 8,
+      "original_bytes": 1536,
+      "compressed_bytes": 1180.0,
+      "compression_ratio": 1.3,
+      "bits_per_dimension": 24.583
+    },
+    {
+      "dim": 768,
+      "bits": 3,
+      "original_bytes": 3072,
+      "compressed_bytes": 2344.0,
+      "compression_ratio": 1.31,
+      "bits_per_dimension": 24.417
+    },
+    {
+      "dim": 768,
+      "bits": 4,
+      "original_bytes": 3072,
+      "compressed_bytes": 2344.0,
+      "compression_ratio": 1.31,
+      "bits_per_dimension": 24.417
+    },
+    {
+      "dim": 768,
+      "bits": 6,
+      "original_bytes": 3072,
+      "compressed_bytes": 2344.0,
+      "compression_ratio": 1.31,
+      "bits_per_dimension": 24.417
+    },
+    {
+      "dim": 768,
+      "bits": 8,
+      "original_bytes": 3072,
+      "compressed_bytes": 2344.0,
+      "compression_ratio": 1.31,
+      "bits_per_dimension": 24.417
+    },
+    {
+      "dim": 1536,
+      "bits": 3,
+      "original_bytes": 6144,
+      "compressed_bytes": 4672.0,
+      "compression_ratio": 1.32,
+      "bits_per_dimension": 24.333
+    },
+    {
+      "dim": 1536,
+      "bits": 4,
+      "original_bytes": 6144,
+      "compressed_bytes": 4672.0,
+      "compression_ratio": 1.32,
+      "bits_per_dimension": 24.333
+    },
+    {
+      "dim": 1536,
+      "bits": 6,
+      "original_bytes": 6144,
+      "compressed_bytes": 4672.0,
+      "compression_ratio": 1.32,
+      "bits_per_dimension": 24.333
+    },
+    {
+      "dim": 1536,
+      "bits": 8,
+      "original_bytes": 6144,
+      "compressed_bytes": 4672.0,
+      "compression_ratio": 1.32,
+      "bits_per_dimension": 24.333
+    }
+  ]
+}
