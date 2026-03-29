@@ -81,6 +81,9 @@ jobs:
     name: Publish WASM to npm
     needs: publish-crates
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -89,7 +92,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install wasm-pack
@@ -97,13 +100,11 @@ jobs:
         working-directory: .
 
       - name: Build WASM
-        run: wasm-pack build bitpolar-wasm --target web --scope mmgehlot
+        run: wasm-pack build bitpolar-wasm --target web
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing)
         working-directory: bitpolar-wasm/pkg
-        run: npm publish --access=public || echo "Already published — skipping"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --provenance || echo "Already published — skipping"
 
   # =========================================================================
   # 4. Build and publish Node.js native package to npm
@@ -111,6 +112,9 @@ jobs:
   publish-npm-node:
     name: Publish Node.js to npm
     needs: publish-crates
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix:
         include:
@@ -131,7 +135,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -146,12 +150,10 @@ jobs:
         working-directory: bitpolar-node
         run: npx napi prepublish -t npm
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing)
         if: matrix.os == 'ubuntu-latest'
         working-directory: bitpolar-node
-        run: npm publish --access=public || echo "Already published — skipping"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --provenance || echo "Already published — skipping"
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v4
