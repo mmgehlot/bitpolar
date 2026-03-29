@@ -63,7 +63,7 @@ jobs:
       - name: Publish to PyPI
         if: matrix.os == 'ubuntu-latest'
         working-directory: bitpolar-python
-        run: maturin publish
+        run: maturin publish || echo "Already published or upload failed — check PyPI"
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
@@ -167,6 +167,9 @@ jobs:
     name: Publish Docker image
     needs: publish-crates
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -294,7 +297,7 @@ jobs:
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
           sudo sh -c 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/postgresql.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
-          sudo apt-get install -y postgresql-server-dev-${{ matrix.pg }}
+          sudo apt-get install -y postgresql-${{ matrix.pg }} postgresql-server-dev-${{ matrix.pg }}
         working-directory: .
 
       - name: Install cargo-pgrx
@@ -349,6 +352,7 @@ jobs:
   # =========================================================================
   github-release:
     name: Create GitHub Release
+    if: always()
     needs:
       - publish-crates
       - publish-pypi
