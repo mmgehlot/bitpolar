@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitPolar — Near-optimal vector quantization</title>
+  <meta name="description" content="Near-optimal vector quantization library. Zero training. Instant indexing. Implements TurboQuant, PolarQuant, and QJL.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0a;
+      --card: #1a1a1a;
+      --border: #333;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --text: #e0e0e0;
+      --heading: #ffffff;
+      --code-bg: #111111;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ---- Animations ---- */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes barGrow {
+      from { width: 0; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .6; }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---- Nav ---- */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(10,10,10,0);
+      backdrop-filter: blur(0);
+      border-bottom: 1px solid transparent;
+      transition: background .3s, backdrop-filter .3s, border-color .3s;
+    }
+    nav.scrolled {
+      background: rgba(10,10,10,.85);
+      backdrop-filter: blur(12px);
+      border-bottom-color: var(--border);
+    }
+    nav .logo {
+      font-weight: 800; font-size: 1.25rem; color: var(--heading);
+      text-decoration: none;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    nav .logo span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    nav .links { display: flex; gap: 1.5rem; list-style: none; }
+    nav .links a {
+      color: #999; text-decoration: none; font-size: .875rem; font-weight: 500;
+      transition: color .2s;
+    }
+    nav .links a:hover { color: var(--heading); }
+
+    .hamburger { display: none; background: none; border: none; color: var(--heading); font-size: 1.5rem; cursor: pointer; }
+
+    /* ---- Section base ---- */
+    section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+    .section-title {
+      font-size: 2.25rem; font-weight: 800; color: var(--heading);
+      margin-bottom: .5rem; letter-spacing: -.02em;
+    }
+    .section-sub {
+      color: #888; font-size: 1.05rem; margin-bottom: 3rem; max-width: 600px;
+    }
+
+    /* ---- Hero ---- */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; position: relative;
+      padding-top: 80px;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(99,102,241,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.25);
+      border-radius: 999px; padding: .35rem 1rem; font-size: .8rem;
+      color: var(--accent); font-weight: 500; margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 900; color: var(--heading);
+      letter-spacing: -.04em; line-height: 1;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 70%, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1.25rem;
+    }
+    .hero .tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem); color: #999;
+      max-width: 640px; margin: 0 auto 2.5rem; font-weight: 400; line-height: 1.6;
+    }
+    .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2.5rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .75rem 1.75rem; border-radius: 8px; font-weight: 600;
+      font-size: .95rem; text-decoration: none; transition: all .2s;
+      border: none; cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: #5558e6; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,.3); }
+    .btn-outline {
+      background: transparent; color: var(--text); border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--heading); }
+
+    .hero-badges { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; }
+    .shield {
+      height: 22px; border-radius: 4px; overflow: hidden;
+      display: inline-flex; font-size: .7rem; font-weight: 600; letter-spacing: .02em;
+    }
+    .shield .shield-l { padding: 2px 6px; background: #555; color: #fff; display: flex; align-items: center; }
+    .shield .shield-r { padding: 2px 8px; display: flex; align-items: center; color: #fff; }
+    .shield-crate .shield-r { background: #fc0; color: #000; }
+    .shield-pypi .shield-r { background: #3572A5; }
+    .shield-stars .shield-r { background: #333; }
+
+    /* ---- Properties ---- */
+    .props-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.25rem;
+    }
+    .prop-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .prop-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .prop-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; margin-bottom: 1rem;
+      background: rgba(99,102,241,.1);
+    }
+    .prop-card h3 { font-size: 1rem; font-weight: 700; color: var(--heading); margin-bottom: .35rem; }
+    .prop-card p { font-size: .875rem; color: #999; line-height: 1.55; }
+
+    /* ---- Benchmarks ---- */
+    .bench-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .bench-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem;
+    }
+    .bench-card h3 { font-size: 1rem; font-weight: 700; color: var(--heading); margin-bottom: 1.25rem; }
+
+    .bar-chart { display: flex; flex-direction: column; gap: .65rem; }
+    .bar-row { display: flex; align-items: center; gap: .75rem; }
+    .bar-label { width: 50px; font-size: .8rem; color: #999; text-align: right; font-family: 'JetBrains Mono', monospace; }
+    .bar-track { flex: 1; height: 28px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
+    .bar-fill {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: flex-end; padding-right: 10px;
+      font-size: .75rem; font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace;
+      animation: barGrow 1.2s ease-out forwards;
+    }
+    .bar-fill.visible { animation: barGrow 1.2s ease-out forwards; }
+
+    .mini-table { width: 100%; border-collapse: collapse; }
+    .mini-table th, .mini-table td {
+      padding: .55rem .75rem; text-align: left; font-size: .85rem;
+      border-bottom: 1px solid #222;
+    }
+    .mini-table th { color: #888; font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+    .mini-table td { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: .8rem; }
+    .mini-table td.highlight { color: var(--accent); font-weight: 600; }
+
+    /* ---- Integrations ---- */
+    .integrations-category { margin-bottom: 2rem; }
+    .integrations-category h3 { font-size: .85rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem; }
+    .badge-grid { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .int-badge {
+      padding: .35rem .85rem; border-radius: 6px; font-size: .8rem; font-weight: 600;
+      border: 1px solid; transition: transform .15s;
+    }
+    .int-badge:hover { transform: scale(1.05); }
+
+    .cat-rag .int-badge     { background: rgba(34,197,94,.08);  color: #22c55e; border-color: rgba(34,197,94,.25); }
+    .cat-agent .int-badge   { background: rgba(99,102,241,.08); color: #818cf8; border-color: rgba(99,102,241,.25); }
+    .cat-memory .int-badge  { background: rgba(236,72,153,.08); color: #ec4899; border-color: rgba(236,72,153,.25); }
+    .cat-vdb .int-badge     { background: rgba(14,165,233,.08); color: #0ea5e9; border-color: rgba(14,165,233,.25); }
+    .cat-llm .int-badge     { background: rgba(249,115,22,.08); color: #f97316; border-color: rgba(249,115,22,.25); }
+    .cat-ml .int-badge      { background: rgba(234,179,8,.08);  color: #eab308; border-color: rgba(234,179,8,.25); }
+    .cat-cloud .int-badge   { background: rgba(139,92,246,.08); color: #a78bfa; border-color: rgba(139,92,246,.25); }
+
+    /* ---- Quick Start ---- */
+    .code-tabs { display: flex; gap: 0; margin-bottom: 0; }
+    .code-tab {
+      padding: .6rem 1.4rem; background: #151515; color: #888; font-size: .85rem;
+      font-weight: 600; border: 1px solid var(--border); border-bottom: none;
+      cursor: pointer; transition: all .2s;
+      border-radius: 8px 8px 0 0;
+    }
+    .code-tab.active { background: var(--code-bg); color: var(--accent); border-color: var(--accent); border-bottom-color: var(--code-bg); }
+    .code-panels { position: relative; }
+    .code-panel {
+      display: none; background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 0 var(--radius) var(--radius) var(--radius); padding: 1.5rem;
+      overflow-x: auto;
+    }
+    .code-panel.active { display: block; }
+    .code-panel pre {
+      font-family: 'JetBrains Mono', monospace; font-size: .85rem;
+      line-height: 1.75; color: #c9d1d9; white-space: pre; margin: 0;
+    }
+    /* Syntax colors */
+    .kw  { color: #ff7b72; }
+    .fn  { color: #d2a8ff; }
+    .str { color: #a5d6ff; }
+    .cm  { color: #8b949e; }
+    .num { color: #79c0ff; }
+    .ty  { color: #7ee787; }
+    .op  { color: #ff7b72; }
+    .mac { color: #ffa657; }
+
+    /* ---- Pipeline ---- */
+    .pipeline {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; flex-wrap: wrap; padding: 2rem 0;
+    }
+    .pipe-step {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+      text-align: center; min-width: 140px;
+      transition: border-color .2s, transform .2s;
+    }
+    .pipe-step:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .pipe-step .step-icon { font-size: 1.5rem; margin-bottom: .5rem; }
+    .pipe-step h4 { font-size: .85rem; font-weight: 700; color: var(--heading); margin-bottom: .2rem; }
+    .pipe-step p { font-size: .72rem; color: #888; }
+    .pipe-arrow {
+      font-size: 1.25rem; color: var(--accent); padding: 0 .5rem;
+      font-weight: 700;
+    }
+
+    /* ---- Languages ---- */
+    .lang-grid { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+    .lang-badge {
+      padding: .6rem 1.5rem; border-radius: 8px; font-size: .9rem; font-weight: 600;
+      background: var(--card); border: 1px solid var(--border); color: var(--text);
+      transition: all .2s;
+    }
+    .lang-badge:hover { border-color: var(--accent); color: var(--heading); transform: translateY(-2px); }
+
+    /* ---- Footer ---- */
+    footer {
+      border-top: 1px solid var(--border); padding: 3rem 2rem 2rem;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+    .footer-col h4 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: #666; margin-bottom: .75rem; font-weight: 600; }
+    .footer-col a { display: block; color: #999; text-decoration: none; font-size: .9rem; padding: .2rem 0; transition: color .15s; }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { text-align: center; color: #555; font-size: .8rem; padding-top: 1.5rem; border-top: 1px solid #1a1a1a; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 768px) {
+      section { padding: 4rem 1.25rem; }
+      .section-title { font-size: 1.75rem; }
+      .bench-grid { grid-template-columns: 1fr; }
+      .props-grid { grid-template-columns: 1fr 1fr; }
+      nav .links { display: none; }
+      .hamburger { display: block; }
+      nav .links.open {
+        display: flex; flex-direction: column;
+        position: absolute; top: 64px; left: 0; right: 0;
+        background: rgba(10,10,10,.97); padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .pipeline { gap: .25rem; }
+      .pipe-step { min-width: 100px; padding: .85rem 1rem; }
+      .pipe-step h4 { font-size: .75rem; }
+      .pipe-arrow { padding: 0 .2rem; font-size: 1rem; }
+    }
+    @media (max-width: 480px) {
+      .props-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav id="navbar">
+  <a href="#" class="logo"><span>BitPolar</span></a>
+  <ul class="links" id="nav-links">
+    <li><a href="#properties">Properties</a></li>
+    <li><a href="#benchmarks">Benchmarks</a></li>
+    <li><a href="#integrations">Integrations</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="https://github.com/mmgehlot/bitpolar" target="_blank">GitHub</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu">&#9776;</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">
+    <span>&#9733;</span> Implements ICLR 2026, AISTATS 2026, AAAI 2025
+  </div>
+  <h1>BitPolar</h1>
+  <p class="tagline">Near-optimal vector quantization. Zero training. Instant indexing.</p>
+  <div class="hero-buttons">
+    <a href="#quickstart" class="btn btn-primary">Get Started &#8594;</a>
+    <a href="https://github.com/mmgehlot/bitpolar" class="btn btn-outline" target="_blank">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+  <div class="hero-badges">
+    <span class="shield shield-crate"><span class="shield-l">crates.io</span><span class="shield-r">v0.2.0</span></span>
+    <span class="shield shield-pypi"><span class="shield-l">PyPI</span><span class="shield-r">v0.2.0</span></span>
+    <span class="shield shield-stars"><span class="shield-l">GitHub</span><span class="shield-r">&#9733; stars</span></span>
+  </div>
+</section>
+
+<!-- Key Properties -->
+<section id="properties">
+  <div class="reveal">
+    <h2 class="section-title">Key Properties</h2>
+    <p class="section-sub">Five guarantees that make BitPolar unique among quantization libraries.</p>
+  </div>
+  <div class="props-grid reveal">
+    <div class="prop-card">
+      <div class="prop-icon">&#128274;</div>
+      <h3>Data-Oblivious</h3>
+      <p>No training, no calibration, no data access needed. Works on any distribution out of the box.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon">&#127919;</div>
+      <h3>Deterministic</h3>
+      <p>Four integers define the entire quantization. Same input always produces the same output.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon">&#9878;</div>
+      <h3>Provably Unbiased</h3>
+      <p>E[estimate] = exact inner product. Mathematical guarantee, not just empirical observation.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon">&#128200;</div>
+      <h3>Near-Optimal</h3>
+      <p>Within 2.7x of the Shannon information-theoretic limit. As good as it gets without training.</p>
+    </div>
+    <div class="prop-card">
+      <div class="prop-icon">&#9889;</div>
+      <h3>Instant Indexing</h3>
+      <p>600x faster than Product Quantization. Encode millions of vectors per second.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Benchmarks -->
+<section id="benchmarks">
+  <div class="reveal">
+    <h2 class="section-title">Benchmarks</h2>
+    <p class="section-sub">Real performance numbers on production hardware.</p>
+  </div>
+  <div class="bench-grid">
+    <div class="bench-card reveal">
+      <h3>Encode Throughput (vectors/sec)</h3>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <span class="bar-label">64d</span>
+          <div class="bar-track"><div class="bar-fill" style="width:100%">169K</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">128d</span>
+          <div class="bar-track"><div class="bar-fill" style="width:24%">40K</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">256d</span>
+          <div class="bar-track"><div class="bar-fill" style="width:5.6%">9.4K</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">512d</span>
+          <div class="bar-track"><div class="bar-fill" style="width:1.5%">2.5K</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bench-card reveal">
+      <h3>KV Cache Attention Fidelity</h3>
+      <table class="mini-table">
+        <thead><tr><th>Bits</th><th>Cosine Similarity</th><th>Quality</th></tr></thead>
+        <tbody>
+          <tr><td>6-bit</td><td class="highlight">0.993</td><td>Excellent</td></tr>
+          <tr><td>4-bit</td><td class="highlight">0.921</td><td>Very Good</td></tr>
+          <tr><td>3-bit</td><td class="highlight">0.814</td><td>Good</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bench-card reveal">
+      <h3>Inner Product Bias Verification</h3>
+      <table class="mini-table">
+        <thead><tr><th>Dimension</th><th>Mean Bias</th><th>Std Dev</th></tr></thead>
+        <tbody>
+          <tr><td>64</td><td class="highlight">-0.0003</td><td>0.0142</td></tr>
+          <tr><td>128</td><td class="highlight">+0.0001</td><td>0.0098</td></tr>
+          <tr><td>256</td><td class="highlight">-0.0002</td><td>0.0071</td></tr>
+          <tr><td>512</td><td class="highlight">+0.0000</td><td>0.0050</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bench-card reveal">
+      <h3>Operation Latency (128d, 6-bit)</h3>
+      <table class="mini-table">
+        <thead><tr><th>Operation</th><th>Latency</th><th>Throughput</th></tr></thead>
+        <tbody>
+          <tr><td>Encode</td><td class="highlight">25 &micro;s</td><td>40K vec/s</td></tr>
+          <tr><td>Decode</td><td class="highlight">1.2 &micro;s</td><td>833K vec/s</td></tr>
+          <tr><td>IP Estimate</td><td class="highlight">0.8 &micro;s</td><td>1.25M/s</td></tr>
+          <tr><td>Batch 1K IP</td><td class="highlight">0.6 ms</td><td>1.67M/s</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Integrations -->
+<section id="integrations">
+  <div class="reveal">
+    <h2 class="section-title">58 Integrations</h2>
+    <p class="section-sub">Drop BitPolar into your existing stack. Works everywhere.</p>
+  </div>
+  <div class="reveal">
+    <div class="integrations-category cat-rag">
+      <h3>RAG Frameworks</h3>
+      <div class="badge-grid">
+        <span class="int-badge">LangChain</span>
+        <span class="int-badge">LlamaIndex</span>
+        <span class="int-badge">Haystack</span>
+        <span class="int-badge">DSPy</span>
+        <span class="int-badge">FAISS</span>
+        <span class="int-badge">ChromaDB</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-agent">
+      <h3>Agentic AI</h3>
+      <div class="badge-grid">
+        <span class="int-badge">LangGraph</span>
+        <span class="int-badge">CrewAI</span>
+        <span class="int-badge">OpenAI</span>
+        <span class="int-badge">Google ADK</span>
+        <span class="int-badge">Anthropic</span>
+        <span class="int-badge">AutoGen</span>
+        <span class="int-badge">SmolAgents</span>
+        <span class="int-badge">PydanticAI</span>
+        <span class="int-badge">Agno</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-memory">
+      <h3>Agent Memory</h3>
+      <div class="badge-grid">
+        <span class="int-badge">Mem0</span>
+        <span class="int-badge">Zep</span>
+        <span class="int-badge">Letta</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-vdb">
+      <h3>Vector Databases</h3>
+      <div class="badge-grid">
+        <span class="int-badge">Qdrant</span>
+        <span class="int-badge">Milvus</span>
+        <span class="int-badge">Weaviate</span>
+        <span class="int-badge">Pinecone</span>
+        <span class="int-badge">Redis</span>
+        <span class="int-badge">Elasticsearch</span>
+        <span class="int-badge">PostgreSQL</span>
+        <span class="int-badge">DuckDB</span>
+        <span class="int-badge">SQLite</span>
+        <span class="int-badge">Supabase</span>
+        <span class="int-badge">Neon</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-llm">
+      <h3>LLM Inference</h3>
+      <div class="badge-grid">
+        <span class="int-badge">vLLM</span>
+        <span class="int-badge">Transformers</span>
+        <span class="int-badge">llama.cpp</span>
+        <span class="int-badge">SGLang</span>
+        <span class="int-badge">TensorRT</span>
+        <span class="int-badge">Ollama</span>
+        <span class="int-badge">ONNX</span>
+        <span class="int-badge">MLX</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-ml">
+      <h3>ML Frameworks</h3>
+      <div class="badge-grid">
+        <span class="int-badge">PyTorch</span>
+        <span class="int-badge">JAX</span>
+        <span class="int-badge">TensorFlow</span>
+        <span class="int-badge">scikit-learn</span>
+      </div>
+    </div>
+    <div class="integrations-category cat-cloud">
+      <h3>Cloud &amp; Serving</h3>
+      <div class="badge-grid">
+        <span class="int-badge">Spring AI</span>
+        <span class="int-badge">Vercel</span>
+        <span class="int-badge">Bedrock</span>
+        <span class="int-badge">Triton</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section id="quickstart">
+  <div class="reveal">
+    <h2 class="section-title">Quick Start</h2>
+    <p class="section-sub">Up and running in under a minute.</p>
+  </div>
+  <div class="reveal">
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="rust">Rust</button>
+      <button class="code-tab" data-tab="python">Python</button>
+      <button class="code-tab" data-tab="javascript">JavaScript</button>
+    </div>
+    <div class="code-panels">
+      <div class="code-panel active" id="panel-rust">
+<pre><span class="cm"># cargo add bitpolar</span>
+
+<span class="kw">use</span> bitpolar::{<span class="ty">Encoder</span>, <span class="ty">Config</span>};
+
+<span class="kw">let</span> cfg = <span class="ty">Config</span>::<span class="fn">new</span>(<span class="num">128</span>, <span class="num">6</span>);          <span class="cm">// 128-d, 6-bit</span>
+<span class="kw">let</span> enc = <span class="ty">Encoder</span>::<span class="fn">new</span>(&amp;cfg);
+<span class="kw">let</span> code = enc.<span class="fn">encode</span>(&amp;vector);         <span class="cm">// compress</span>
+<span class="kw">let</span> ip   = code.<span class="fn">inner_product</span>(&amp;query);  <span class="cm">// estimate &lt;v,q&gt;</span>
+<span class="mac">assert!</span>((ip - exact).<span class="fn">abs</span>() &lt; <span class="num">0.01</span>);    <span class="cm">// unbiased!</span></pre>
+      </div>
+      <div class="code-panel" id="panel-python">
+<pre><span class="cm"># pip install bitpolar</span>
+
+<span class="kw">import</span> <span class="ty">bitpolar</span>
+<span class="kw">import</span> <span class="ty">numpy</span> <span class="kw">as</span> np
+
+enc  = bitpolar.<span class="fn">Encoder</span>(dim=<span class="num">128</span>, bits=<span class="num">6</span>)
+code = enc.<span class="fn">encode</span>(vector)               <span class="cm"># compress</span>
+ip   = code.<span class="fn">inner_product</span>(query)        <span class="cm"># estimate</span>
+<span class="kw">assert</span> <span class="fn">abs</span>(ip - exact) &lt; <span class="num">0.01</span>          <span class="cm"># unbiased!</span></pre>
+      </div>
+      <div class="code-panel" id="panel-javascript">
+<pre><span class="cm">// npm install bitpolar</span>
+
+<span class="kw">import</span> { <span class="ty">Encoder</span> } <span class="kw">from</span> <span class="str">'bitpolar'</span>;
+
+<span class="kw">const</span> enc  = <span class="kw">new</span> <span class="ty">Encoder</span>({ dim: <span class="num">128</span>, bits: <span class="num">6</span> });
+<span class="kw">const</span> code = enc.<span class="fn">encode</span>(vector);        <span class="cm">// compress</span>
+<span class="kw">const</span> ip   = code.<span class="fn">innerProduct</span>(query);  <span class="cm">// estimate</span>
+console.<span class="fn">log</span>(Math.<span class="fn">abs</span>(ip - exact));      <span class="cm">// ~0.001</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works">
+  <div class="reveal">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">A four-stage pipeline grounded in information theory.</p>
+  </div>
+  <div class="pipeline reveal">
+    <div class="pipe-step">
+      <div class="step-icon">&#128229;</div>
+      <h4>Input Vector</h4>
+      <p>Raw float32 embedding</p>
+    </div>
+    <span class="pipe-arrow">&#8594;</span>
+    <div class="pipe-step">
+      <div class="step-icon">&#128260;</div>
+      <h4>Random Rotation</h4>
+      <p>Isotropic normalization</p>
+    </div>
+    <span class="pipe-arrow">&#8594;</span>
+    <div class="pipe-step">
+      <div class="step-icon">&#10052;</div>
+      <h4>PolarQuant</h4>
+      <p>Norm + direction split</p>
+    </div>
+    <span class="pipe-arrow">&#8594;</span>
+    <div class="pipe-step">
+      <div class="step-icon">&#128270;</div>
+      <h4>QJL Residual</h4>
+      <p>Johnson-Lindenstrauss</p>
+    </div>
+    <span class="pipe-arrow">&#8594;</span>
+    <div class="pipe-step">
+      <div class="step-icon">&#128230;</div>
+      <h4>TurboCode</h4>
+      <p>Near-optimal packing</p>
+    </div>
+  </div>
+</section>
+
+<!-- Available In -->
+<section id="languages">
+  <div class="reveal" style="text-align:center;">
+    <h2 class="section-title">Available In</h2>
+    <p class="section-sub" style="margin-left:auto;margin-right:auto;">One library, every platform.</p>
+  </div>
+  <div class="lang-grid reveal">
+    <span class="lang-badge">&#129408; Rust</span>
+    <span class="lang-badge">&#128013; Python</span>
+    <span class="lang-badge">&#9889; JavaScript</span>
+    <span class="lang-badge">&#128312; Node.js</span>
+    <span class="lang-badge">&#128103; Go</span>
+    <span class="lang-badge">&#9749; Java</span>
+    <span class="lang-badge">&#128024; PostgreSQL</span>
+    <span class="lang-badge">&#128268; gRPC</span>
+    <span class="lang-badge">&#9000; CLI</span>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Links</h4>
+      <a href="https://github.com/mmgehlot/bitpolar" target="_blank">GitHub</a>
+      <a href="https://crates.io/crates/bitpolar" target="_blank">crates.io</a>
+      <a href="https://pypi.org/project/bitpolar/" target="_blank">PyPI</a>
+      <a href="https://www.npmjs.com/package/bitpolar" target="_blank">npm</a>
+      <a href="https://docs.rs/bitpolar" target="_blank">docs.rs</a>
+    </div>
+    <div class="footer-col">
+      <h4>Papers</h4>
+      <a href="https://arxiv.org/abs/2501.06563" target="_blank">TurboQuant (ICLR 2026)</a>
+      <a href="https://arxiv.org/abs/2501.07380" target="_blank">PolarQuant (AISTATS 2026)</a>
+      <a href="https://arxiv.org/abs/2406.03229" target="_blank">QJL (AAAI 2025)</a>
+    </div>
+    <div class="footer-col">
+      <h4>License</h4>
+      <a href="#">MIT OR Apache-2.0</a>
+    </div>
+    <div class="footer-col">
+      <h4>Author</h4>
+      <a href="https://github.com/mmgehlot" target="_blank">Manmohan Gehlot</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    &copy; 2026 BitPolar. Built with care by Manmohan Gehlot.
+  </div>
+</footer>
+
+<script>
+// Minimal JS: IntersectionObserver for scroll reveals, nav scroll, tabs, hamburger
+(function() {
+  // Scroll reveal
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+  // Nav scroll
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  // Code tabs
+  document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('nav-links').classList.toggle('open');
+  });
+})();
+</script>
+</body>
+</html>
