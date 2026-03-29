@@ -17,7 +17,10 @@ use crate::turbo::{TurboCode, TurboQuantizer};
 ///
 /// Fully determines the quantizer: `(head_dim, bits, projections, seed)`.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct KvCacheConfig {
     /// Dimension of each attention head's key/value vector
     pub head_dim: usize,
@@ -50,9 +53,17 @@ impl KvCacheCompressor {
     /// # Errors
     /// - `ZeroDimension`, `OddDimension`, `InvalidBitWidth`, `ZeroProjections`
     pub fn new(config: &KvCacheConfig) -> Result<Self> {
-        let quantizer =
-            TurboQuantizer::new(config.head_dim, config.bits, config.projections, config.seed)?;
-        Ok(Self { quantizer, keys: Vec::new(), values: Vec::new() })
+        let quantizer = TurboQuantizer::new(
+            config.head_dim,
+            config.bits,
+            config.projections,
+            config.seed,
+        )?;
+        Ok(Self {
+            quantizer,
+            keys: Vec::new(),
+            values: Vec::new(),
+        })
     }
 
     /// Push a (key, value) pair into the cache.
@@ -111,14 +122,21 @@ impl KvCacheCompressor {
         let scores: Result<Vec<f32>> = self
             .keys
             .iter()
-            .map(|kc| self.quantizer.inner_product_estimate(kc, query).map(|ip| ip * scale))
+            .map(|kc| {
+                self.quantizer
+                    .inner_product_estimate(kc, query)
+                    .map(|ip| ip * scale)
+            })
             .collect();
         scores
     }
 
     /// Decode all stored values back to approximate f32 vectors.
     pub fn decode_values(&self) -> Vec<Vec<f32>> {
-        self.values.iter().map(|vc| self.quantizer.decode(vc)).collect()
+        self.values
+            .iter()
+            .map(|vc| self.quantizer.decode(vc))
+            .collect()
     }
 
     /// Approximate compression ratio: original bytes / compressed bytes.
@@ -249,7 +267,12 @@ mod tests {
     use super::*;
 
     fn sample_config() -> KvCacheConfig {
-        KvCacheConfig { head_dim: 8, bits: 4, projections: 16, seed: 42 }
+        KvCacheConfig {
+            head_dim: 8,
+            bits: 4,
+            projections: 16,
+            seed: 42,
+        }
     }
 
     #[test]

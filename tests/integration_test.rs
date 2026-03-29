@@ -2,18 +2,20 @@
 //!
 //! Only the public API is used — no access to `pub(crate)` fields.
 
+use bitpolar::traits::{RotationStrategy, VectorQuantizer};
 use bitpolar::{
     DistortionTracker, KvCacheCompressor, KvCacheConfig, MultiHeadKvCache, PolarCode,
     PolarQuantizer, QjlQuantizer, QjlSketch, StoredRotation, TurboCode, TurboQuantizer,
 };
-use bitpolar::traits::{RotationStrategy, VectorQuantizer};
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 fn make_vec(dim: usize, seed: u64) -> Vec<f32> {
-    (0..dim).map(|i| (seed as f64 * 1.7 + i as f64 * 0.3).sin() as f32).collect()
+    (0..dim)
+        .map(|i| (seed as f64 * 1.7 + i as f64 * 0.3).sin() as f32)
+        .collect()
 }
 
 fn l2_norm(v: &[f32]) -> f32 {
@@ -26,7 +28,11 @@ fn exact_ip(a: &[f32], b: &[f32]) -> f32 {
 
 fn normalise(v: Vec<f32>) -> Vec<f32> {
     let n = l2_norm(&v);
-    if n < 1e-10 { v } else { v.iter().map(|x| x / n).collect() }
+    if n < 1e-10 {
+        v
+    } else {
+        v.iter().map(|x| x / n).collect()
+    }
 }
 
 // ============================================================================
@@ -48,8 +54,11 @@ fn e2e_search_recall() {
     let query = db_vecs[7].clone();
 
     // Exact top-5.
-    let mut true_scores: Vec<(usize, f32)> =
-        db_vecs.iter().enumerate().map(|(i, v)| (i, exact_ip(v, &query))).collect();
+    let mut true_scores: Vec<(usize, f32)> = db_vecs
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (i, exact_ip(v, &query)))
+        .collect();
     true_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     let true_top5: Vec<usize> = true_scores[..5].iter().map(|(i, _)| *i).collect();
 
@@ -62,7 +71,10 @@ fn e2e_search_recall() {
     approx_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     let approx_top5: Vec<usize> = approx_scores[..5].iter().map(|(i, _)| *i).collect();
 
-    let recall = approx_top5.iter().filter(|idx| true_top5.contains(idx)).count();
+    let recall = approx_top5
+        .iter()
+        .filter(|idx| true_top5.contains(idx))
+        .count();
     assert!(
         recall >= 2,
         "recall@5={recall}/5: true_top5={true_top5:?} approx_top5={approx_top5:?}"
@@ -81,7 +93,9 @@ fn compression_ratios_all_produce_ratio_greater_than_one() {
     for &bits in &[3u8, 4, 6, 8] {
         let projections = (dim / 4).max(1);
         let q = TurboQuantizer::new(dim, bits, projections, 42).unwrap();
-        let codes: Vec<_> = (0..n_vecs as u64).map(|i| q.encode(&make_vec(dim, i)).unwrap()).collect();
+        let codes: Vec<_> = (0..n_vecs as u64)
+            .map(|i| q.encode(&make_vec(dim, i)).unwrap())
+            .collect();
         let stats = q.batch_stats(&codes);
         assert!(
             stats.compression_ratio > 1.0,
@@ -107,7 +121,10 @@ fn seed_independence_different_seeds_produce_different_encodings() {
     let bytes_a = qa.encode(&v).unwrap().to_compact_bytes();
     let bytes_b = qb.encode(&v).unwrap().to_compact_bytes();
 
-    assert_ne!(bytes_a, bytes_b, "different seeds must produce different compact bytes");
+    assert_ne!(
+        bytes_a, bytes_b,
+        "different seeds must produce different compact bytes"
+    );
 }
 
 // ============================================================================
@@ -166,7 +183,10 @@ fn batch_consistency_results_match_sequential_encode() {
     let q = TurboQuantizer::new(dim, 4, projections, 42).unwrap();
 
     let vecs: Vec<Vec<f32>> = (0..20_u64).map(|i| make_vec(dim, i)).collect();
-    let seq_bytes: Vec<Vec<u8>> = vecs.iter().map(|v| q.encode(v).unwrap().to_compact_bytes()).collect();
+    let seq_bytes: Vec<Vec<u8>> = vecs
+        .iter()
+        .map(|v| q.encode(v).unwrap().to_compact_bytes())
+        .collect();
 
     #[cfg(feature = "parallel")]
     {
@@ -176,7 +196,8 @@ fn batch_consistency_results_match_sequential_encode() {
         assert_eq!(batch_codes.len(), seq_bytes.len());
         for (i, (bc, sb)) in batch_codes.iter().zip(seq_bytes.iter()).enumerate() {
             assert_eq!(
-                bc.to_compact_bytes(), *sb,
+                bc.to_compact_bytes(),
+                *sb,
                 "batch vs sequential mismatch at index {i}"
             );
         }
@@ -196,7 +217,12 @@ fn batch_consistency_results_match_sequential_encode() {
 #[test]
 fn kv_cache_workflow() {
     let head_dim = 64usize;
-    let config = KvCacheConfig { head_dim, bits: 4, projections: head_dim / 4, seed: 42 };
+    let config = KvCacheConfig {
+        head_dim,
+        bits: 4,
+        projections: head_dim / 4,
+        seed: 42,
+    };
     let mut cache = KvCacheCompressor::new(&config).unwrap();
 
     let n_tokens = 50usize;
@@ -210,7 +236,10 @@ fn kv_cache_workflow() {
     let query = make_vec(head_dim, 9999);
     let scores = cache.attention_scores(&query).unwrap();
     assert_eq!(scores.len(), n_tokens, "one score per stored key");
-    assert!(scores.iter().all(|s| s.is_finite()), "all scores must be finite");
+    assert!(
+        scores.iter().all(|s| s.is_finite()),
+        "all scores must be finite"
+    );
     assert!(cache.compression_ratio() > 0.0);
 }
 
@@ -222,30 +251,45 @@ fn kv_cache_workflow() {
 fn multi_head_kv_cache() {
     let num_heads = 4usize;
     let head_dim = 64usize;
-    let config = KvCacheConfig { head_dim, bits: 4, projections: head_dim / 4, seed: 7 };
+    let config = KvCacheConfig {
+        head_dim,
+        bits: 4,
+        projections: head_dim / 4,
+        seed: 7,
+    };
     let mut mhc = MultiHeadKvCache::new(num_heads, &config).unwrap();
 
     let n_tokens = 10usize;
     for i in 0..n_tokens as u64 {
-        let key_vecs: Vec<Vec<f32>> =
-            (0..num_heads as u64).map(|h| make_vec(head_dim, i * 100 + h)).collect();
-        let val_vecs: Vec<Vec<f32>> =
-            (0..num_heads as u64).map(|h| make_vec(head_dim, i * 100 + h + 50)).collect();
+        let key_vecs: Vec<Vec<f32>> = (0..num_heads as u64)
+            .map(|h| make_vec(head_dim, i * 100 + h))
+            .collect();
+        let val_vecs: Vec<Vec<f32>> = (0..num_heads as u64)
+            .map(|h| make_vec(head_dim, i * 100 + h + 50))
+            .collect();
         let keys: Vec<&[f32]> = key_vecs.iter().map(|v| v.as_slice()).collect();
         let vals: Vec<&[f32]> = val_vecs.iter().map(|v| v.as_slice()).collect();
         mhc.push_token(&keys, &vals).unwrap();
     }
     assert_eq!(mhc.len(), n_tokens);
 
-    let q_vecs: Vec<Vec<f32>> =
-        (0..num_heads as u64).map(|h| make_vec(head_dim, h + 9000)).collect();
+    let q_vecs: Vec<Vec<f32>> = (0..num_heads as u64)
+        .map(|h| make_vec(head_dim, h + 9000))
+        .collect();
     let queries: Vec<&[f32]> = q_vecs.iter().map(|v| v.as_slice()).collect();
     let all_scores = mhc.attention_scores(&queries).unwrap();
 
     assert_eq!(all_scores.len(), num_heads);
     for (h, head_scores) in all_scores.iter().enumerate() {
-        assert_eq!(head_scores.len(), n_tokens, "head {h}: wrong number of scores");
-        assert!(head_scores.iter().all(|s| s.is_finite()), "head {h}: non-finite scores");
+        assert_eq!(
+            head_scores.len(),
+            n_tokens,
+            "head {h}: wrong number of scores"
+        );
+        assert!(
+            head_scores.iter().all(|s| s.is_finite()),
+            "head {h}: non-finite scores"
+        );
     }
 }
 
@@ -266,9 +310,12 @@ fn distortion_tracker_integration() {
         let v = normalise(make_vec(dim, i));
         let code = q.encode(&v).unwrap();
         let decoded = q.decode(&code);
-        let mse: f64 =
-            v.iter().zip(decoded.iter()).map(|(a, b)| (*a as f64 - *b as f64).powi(2)).sum::<f64>()
-                / dim as f64;
+        let mse: f64 = v
+            .iter()
+            .zip(decoded.iter())
+            .map(|(a, b)| (*a as f64 - *b as f64).powi(2))
+            .sum::<f64>()
+            / dim as f64;
         // Observe the distortion (ground truth = 0 = ideal).
         tracker.observe(mse, 0.0);
     }
@@ -308,7 +355,10 @@ fn polar_standalone_encode_decode() {
 
     // IP estimate self-query must be positive for non-zero vector.
     let ip = q.inner_product_estimate(&code, &v).unwrap();
-    assert!(ip > 0.0, "PolarQuantizer IP(v,v) must be positive, got {ip}");
+    assert!(
+        ip > 0.0,
+        "PolarQuantizer IP(v,v) must be positive, got {ip}"
+    );
 }
 
 // ============================================================================
@@ -344,7 +394,10 @@ fn qjl_standalone_ip_estimation() {
     if v_norm_sq > 1e-4 {
         let self_sketch = q.sketch(&v).unwrap();
         let self_est = q.inner_product_estimate(&self_sketch, &v).unwrap();
-        assert!(self_est > 0.0, "QJL IP(v,v) must be positive for non-zero v");
+        assert!(
+            self_est > 0.0,
+            "QJL IP(v,v) must be positive for non-zero v"
+        );
     }
 }
 
@@ -389,7 +442,10 @@ fn multiple_encodes_no_state_leak() {
         let b2_check = q.encode(&v2).unwrap().to_compact_bytes();
         assert_eq!(b2, b2_check, "v2 must be reproducible");
 
-        assert_ne!(b1, b2, "distinct vectors must produce distinct compact bytes");
+        assert_ne!(
+            b1, b2,
+            "distinct vectors must produce distinct compact bytes"
+        );
     }
 }
 
@@ -424,11 +480,18 @@ fn nonfinite_input_rejected() {
 #[test]
 fn kv_cache_clear_resets_state() {
     let head_dim = 32usize;
-    let config = KvCacheConfig { head_dim, bits: 4, projections: head_dim / 4, seed: 1 };
+    let config = KvCacheConfig {
+        head_dim,
+        bits: 4,
+        projections: head_dim / 4,
+        seed: 1,
+    };
     let mut cache = KvCacheCompressor::new(&config).unwrap();
 
     for i in 0..10_u64 {
-        cache.push(&make_vec(head_dim, i), &make_vec(head_dim, i + 50)).unwrap();
+        cache
+            .push(&make_vec(head_dim, i), &make_vec(head_dim, i + 50))
+            .unwrap();
     }
     assert_eq!(cache.len(), 10);
     cache.clear();
@@ -529,7 +592,10 @@ fn zero_norm_vector_full_pipeline() {
 
     let query = make_vec(dim, 1);
     let est = q.inner_product_estimate(&code, &query).unwrap();
-    assert!(est.abs() < 1.0, "IP with zero vector should be ~0, got {est}");
+    assert!(
+        est.abs() < 1.0,
+        "IP with zero vector should be ~0, got {est}"
+    );
 
     let dist = q.l2_distance_estimate(&code, &query).unwrap();
     assert!(dist.is_finite() && dist >= 0.0);
@@ -590,7 +656,10 @@ fn rotation_strategy_trait_dispatch() {
     let back = boxed.rotate_inverse(&rotated);
     assert_eq!(back.len(), dim);
     for (a, b) in v.iter().zip(back.iter()) {
-        assert!((a - b).abs() < 1e-4, "rotation roundtrip failed: {a} vs {b}");
+        assert!(
+            (a - b).abs() < 1e-4,
+            "rotation roundtrip failed: {a} vs {b}"
+        );
     }
 }
 

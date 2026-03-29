@@ -17,7 +17,9 @@ fn make_quantizer(dim_mult: usize, seed: u64) -> TurboQuantizer {
 }
 
 fn make_vec(dim: usize, trial: u64) -> Vec<f32> {
-    (0..dim).map(|j| (trial as f64 * 1.3 + j as f64 * 0.7).sin() as f32).collect()
+    (0..dim)
+        .map(|j| (trial as f64 * 1.3 + j as f64 * 0.7).sin() as f32)
+        .collect()
 }
 
 // ============================================================================

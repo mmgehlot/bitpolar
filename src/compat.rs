@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 //! Compatibility layer for `std`/`alloc`/`no_std` builds.
 //!
 //! Centralizes all conditional imports so individual modules don't need

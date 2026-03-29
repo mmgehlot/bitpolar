@@ -19,7 +19,10 @@ use crate::traits::{SerializableCode, VectorQuantizer};
 ///
 /// Combines a polar code (Stage 1) and a QJL residual sketch (Stage 2).
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct TurboCode {
     /// Stage 1: polar coordinate code
     pub(crate) polar: PolarCode,
@@ -90,7 +93,15 @@ impl TurboQuantizer {
         let polar = PolarQuantizer::new(dim, bits)?;
         // QJL operates on the residual, which has the same dimension.
         let qjl = QjlQuantizer::new(dim, projections, seed.wrapping_add(1))?;
-        Ok(Self { dim, bits, num_projections: projections, seed, rotation, polar, qjl })
+        Ok(Self {
+            dim,
+            bits,
+            num_projections: projections,
+            seed,
+            rotation,
+            polar,
+            qjl,
+        })
     }
 
     /// The vector dimension.
@@ -148,7 +159,10 @@ impl TurboQuantizer {
             .collect();
         let residual_sketch = self.qjl.sketch(&residual)?;
 
-        Ok(TurboCode { polar, residual_sketch })
+        Ok(TurboCode {
+            polar,
+            residual_sketch,
+        })
     }
 
     /// Decode a [`TurboCode`] back to an approximate f32 vector.
@@ -197,11 +211,14 @@ impl TurboQuantizer {
         self.rotation.apply_slice(query, &mut rotated_query);
 
         // Stage 1: polar inner product estimate.
-        let ip_polar = self.polar.inner_product_estimate(&code.polar, &rotated_query)?;
+        let ip_polar = self
+            .polar
+            .inner_product_estimate(&code.polar, &rotated_query)?;
 
         // Stage 2: QJL residual inner product estimate.
-        let ip_residual =
-            self.qjl.inner_product_estimate(&code.residual_sketch, &rotated_query)?;
+        let ip_residual = self
+            .qjl
+            .inner_product_estimate(&code.residual_sketch, &rotated_query)?;
 
         Ok(ip_polar + ip_residual)
     }
@@ -228,7 +245,11 @@ impl TurboQuantizer {
         validate_finite(query)?;
 
         let decoded = self.decode(code);
-        let sq: f32 = decoded.iter().zip(query.iter()).map(|(a, b)| (a - b).powi(2)).sum();
+        let sq: f32 = decoded
+            .iter()
+            .zip(query.iter())
+            .map(|(a, b)| (a - b).powi(2))
+            .sum();
         Ok(crate::compat::math::sqrtf(sq))
     }
 
@@ -247,7 +268,13 @@ impl TurboQuantizer {
         } else {
             (compressed_bytes as f64 * 8.0) / (count as f64 * self.dim as f64)
         };
-        BatchStats { count, original_bytes, compressed_bytes, compression_ratio, bits_per_value }
+        BatchStats {
+            count,
+            original_bytes,
+            compressed_bytes,
+            compression_ratio,
+            bits_per_value,
+        }
     }
 }
 
@@ -366,12 +393,12 @@ impl TurboCode {
         let polar_bytes = self.polar.to_compact_bytes();
         let qjl_bytes = self.residual_sketch.to_compact_bytes();
 
-        let mut out =
-            Vec::with_capacity(1 + 4 + polar_bytes.len() + qjl_bytes.len());
+        let mut out = Vec::with_capacity(1 + 4 + polar_bytes.len() + qjl_bytes.len());
         out.push(crate::COMPACT_FORMAT_VERSION);
-        let polar_len: u32 = polar_bytes.len().try_into().expect(
-            "polar payload exceeds u32::MAX; dimension too large for compact format",
-        );
+        let polar_len: u32 = polar_bytes
+            .len()
+            .try_into()
+            .expect("polar payload exceeds u32::MAX; dimension too large for compact format");
         out.extend_from_slice(&polar_len.to_le_bytes());
         out.extend_from_slice(&polar_bytes);
         out.extend_from_slice(&qjl_bytes);
@@ -402,8 +429,7 @@ impl TurboCode {
         if bytes.len() < 5 {
             return Err(err("buffer too short for polar length prefix"));
         }
-        let polar_len =
-            u32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as usize;
+        let polar_len = u32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as usize;
         let polar_start = 5;
         let polar_end = polar_start + polar_len;
         if bytes.len() < polar_end {
@@ -415,7 +441,10 @@ impl TurboCode {
             return Err(err("missing qjl payload"));
         }
         let residual_sketch = QjlSketch::from_compact_bytes(qjl_bytes)?;
-        Ok(Self { polar, residual_sketch })
+        Ok(Self {
+            polar,
+            residual_sketch,
+        })
     }
 }
 
@@ -440,7 +469,10 @@ mod tests {
 
     #[test]
     fn test_zero_dimension_error() {
-        assert!(matches!(TurboQuantizer::new(0, 4, 32, 42), Err(TurboQuantError::ZeroDimension)));
+        assert!(matches!(
+            TurboQuantizer::new(0, 4, 32, 42),
+            Err(TurboQuantError::ZeroDimension)
+        ));
     }
 
     #[test]
@@ -464,7 +496,10 @@ mod tests {
     fn test_dimension_mismatch() {
         let q = TurboQuantizer::new(8, 4, 16, 42).unwrap();
         let v = vec![0.0_f32; 4];
-        assert!(matches!(q.encode(&v), Err(TurboQuantError::DimensionMismatch { .. })));
+        assert!(matches!(
+            q.encode(&v),
+            Err(TurboQuantError::DimensionMismatch { .. })
+        ));
     }
 
     #[test]
@@ -510,7 +545,10 @@ mod tests {
         assert_eq!(decoded.polar.angle_indices, code.polar.angle_indices);
         assert_eq!(decoded.polar.bits, code.polar.bits);
         assert_eq!(decoded.residual_sketch.signs, code.residual_sketch.signs);
-        assert_eq!(decoded.residual_sketch.num_projections, code.residual_sketch.num_projections);
+        assert_eq!(
+            decoded.residual_sketch.num_projections,
+            code.residual_sketch.num_projections
+        );
         assert_eq!(decoded.residual_sketch.norm, code.residual_sketch.norm);
     }
 
@@ -573,7 +611,11 @@ mod tests {
 
         fn make_vectors(n: usize, dim: usize) -> Vec<Vec<f32>> {
             (0..n)
-                .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.1).sin()).collect())
+                .map(|i| {
+                    (0..dim)
+                        .map(|j| ((i * dim + j) as f32 * 0.1).sin())
+                        .collect()
+                })
                 .collect()
         }
 
@@ -603,7 +645,10 @@ mod tests {
             let batch_scores = q.batch_inner_product(&codes, &query).unwrap();
             for (i, &score) in batch_scores.iter().enumerate() {
                 let seq_score = q.inner_product_estimate(&codes[i], &query).unwrap();
-                assert!((score - seq_score).abs() < 1e-6, "score mismatch at index {i}");
+                assert!(
+                    (score - seq_score).abs() < 1e-6,
+                    "score mismatch at index {i}"
+                );
             }
         }
 

@@ -31,8 +31,8 @@
 //! ```
 
 use crate::error::Result;
-use crate::turbo::{TurboCode, TurboQuantizer};
 use crate::traits::VectorQuantizer;
+use crate::turbo::{TurboCode, TurboQuantizer};
 
 // ---------------------------------------------------------------------------
 // Tier
@@ -40,7 +40,10 @@ use crate::traits::VectorQuantizer;
 
 /// Storage tier selector for [`TieredQuantization`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum Tier {
     /// 8-bit quantization — highest accuracy, largest codes.
     Hot,
@@ -56,7 +59,10 @@ pub enum Tier {
 
 /// A compressed vector code tagged with its storage [`Tier`].
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum TieredCode {
     /// Hot-tier code (8-bit TurboCode).
     Hot(TurboCode),
@@ -362,7 +368,10 @@ mod tests {
         for tier in [Tier::Hot, Tier::Warm, Tier::Cold] {
             let code = tq.encode(&v, tier).unwrap();
             let ip = tq.inner_product_estimate(&code, &v).unwrap();
-            assert!(ip > 0.0, "tier {tier:?} self-IP should be positive, got {ip}");
+            assert!(
+                ip > 0.0,
+                "tier {tier:?} self-IP should be positive, got {ip}"
+            );
         }
     }
 

@@ -38,8 +38,8 @@ pub struct BitPolarService {
 impl BitPolarService {
     /// Create a new service with the given configuration.
     pub fn new(dim: usize, bits: u8, projections: usize, seed: u64) -> Result<Self, String> {
-        let quantizer = TurboQuantizer::new(dim, bits, projections, seed)
-            .map_err(|e| e.to_string())?;
+        let quantizer =
+            TurboQuantizer::new(dim, bits, projections, seed).map_err(|e| e.to_string())?;
         Ok(Self {
             quantizer: Arc::new(quantizer),
             index: Arc::new(RwLock::new(HashMap::new())),
@@ -66,13 +66,19 @@ impl VectorCompression for BitPolarService {
         if req.vectors.len() != expected_len {
             return Err(Status::invalid_argument(format!(
                 "Expected {} floats ({}x{}), got {}",
-                expected_len, count, dim, req.vectors.len()
+                expected_len,
+                count,
+                dim,
+                req.vectors.len()
             )));
         }
 
         let bits = req.bits as u8;
         if !(3..=8).contains(&bits) {
-            return Err(Status::invalid_argument(format!("bits must be 3-8, got {}", bits)));
+            return Err(Status::invalid_argument(format!(
+                "bits must be 3-8, got {}",
+                bits
+            )));
         }
         let projections = (dim / 4).max(1);
         let q = TurboQuantizer::new(dim, bits, projections, req.seed)
@@ -141,13 +147,17 @@ impl VectorCompression for BitPolarService {
         }
 
         // RwLock read — allows concurrent searches
-        let index = self.index.read().map_err(|_| Status::internal("Lock poisoned"))?;
+        let index = self
+            .index
+            .read()
+            .map_err(|_| Status::internal("Lock poisoned"))?;
 
         let mut scored: Vec<(u64, f32)> = Vec::with_capacity(index.len());
         for (&id, code_bytes) in index.iter() {
             let code = bitpolar::TurboCode::from_compact_bytes(code_bytes)
                 .map_err(|e| Status::internal(e.to_string()))?;
-            let score = self.quantizer
+            let score = self
+                .quantizer
                 .inner_product_estimate(&code, &req.query)
                 .map_err(|e| Status::internal(e.to_string()))?;
             scored.push((id, score));
@@ -181,20 +191,25 @@ impl VectorCompression for BitPolarService {
             )));
         }
 
-        let expected_len = dim.checked_mul(count).ok_or_else(|| {
-            Status::invalid_argument("Vector count overflow")
-        })?;
+        let expected_len = dim
+            .checked_mul(count)
+            .ok_or_else(|| Status::invalid_argument("Vector count overflow"))?;
 
         if req.vectors.len() != expected_len {
             return Err(Status::invalid_argument("Vector count mismatch"));
         }
 
         // RwLock write — exclusive access for mutations
-        let mut index = self.index.write().map_err(|_| Status::internal("Lock poisoned"))?;
+        let mut index = self
+            .index
+            .write()
+            .map_err(|_| Status::internal("Lock poisoned"))?;
 
         for (i, &id) in req.ids.iter().enumerate() {
             let vec = &req.vectors[i * dim..(i + 1) * dim];
-            let code = self.quantizer.encode(vec)
+            let code = self
+                .quantizer
+                .encode(vec)
                 .map_err(|e| Status::internal(e.to_string()))?;
             index.insert(id, code.to_compact_bytes());
         }
@@ -210,7 +225,10 @@ impl VectorCompression for BitPolarService {
         &self,
         _request: Request<proto::HealthRequest>,
     ) -> Result<Response<proto::HealthResponse>, Status> {
-        let index = self.index.read().map_err(|_| Status::internal("Lock poisoned"))?;
+        let index = self
+            .index
+            .read()
+            .map_err(|_| Status::internal("Lock poisoned"))?;
         Ok(Response::new(proto::HealthResponse {
             status: "healthy".to_string(),
             index_size: index.len() as u64,
@@ -242,7 +260,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host = std::env::var("BITPOLAR_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let addr = format!("{}:{}", host, port).parse()?;
     tracing::info!("BitPolar gRPC server starting on {}", addr);
-    tracing::info!("Config: dim={}, bits={}, projections={}, seed={}", dim, bits, projections, seed);
+    tracing::info!(
+        "Config: dim={}, bits={}, projections={}, seed={}",
+        dim,
+        bits,
+        projections,
+        seed
+    );
 
     Server::builder()
         .add_service(VectorCompressionServer::new(service))

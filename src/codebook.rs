@@ -11,7 +11,10 @@ use crate::error::{Result, TurboQuantError};
 /// Stores `2^bits` centroids and the `2^bits - 1` decision boundaries
 /// that partition the real line into `2^bits` intervals.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub(crate) struct LloydMaxCodebook {
     /// Bit width (1..=16). Retained for diagnostics and serde round-tripping.
     #[allow(dead_code)]
@@ -47,10 +50,7 @@ impl LloydMaxCodebook {
         // Lloyd-Max iterations (30 is sufficient for convergence).
         for _ in 0..30 {
             // Update boundaries: midpoints between adjacent centroids.
-            let boundaries: Vec<f32> = centroids
-                .windows(2)
-                .map(|w| (w[0] + w[1]) / 2.0)
-                .collect();
+            let boundaries: Vec<f32> = centroids.windows(2).map(|w| (w[0] + w[1]) / 2.0).collect();
 
             // Update centroids: E[X | X in interval] for N(0,1).
             let mut new_centroids = vec![0.0_f32; levels];
@@ -71,12 +71,13 @@ impl LloydMaxCodebook {
         }
 
         // Recompute final boundaries.
-        let boundaries: Vec<f32> = centroids
-            .windows(2)
-            .map(|w| (w[0] + w[1]) / 2.0)
-            .collect();
+        let boundaries: Vec<f32> = centroids.windows(2).map(|w| (w[0] + w[1]) / 2.0).collect();
 
-        Ok(Self { bits, centroids, boundaries })
+        Ok(Self {
+            bits,
+            centroids,
+            boundaries,
+        })
     }
 
     /// Quantize a scalar value to its nearest codebook index.
@@ -106,10 +107,26 @@ impl LloydMaxCodebook {
 /// Uses the formula: (φ(lo) − φ(hi)) / (Φ(hi) − Φ(lo))
 /// where φ is the standard Gaussian PDF and Φ is the CDF.
 fn gaussian_conditional_mean(lo: f32, hi: f32) -> f32 {
-    let phi_lo = if lo.is_finite() { standard_normal_pdf(lo) } else { 0.0 };
-    let phi_hi = if hi.is_finite() { standard_normal_pdf(hi) } else { 0.0 };
-    let p_lo = if lo.is_finite() { standard_normal_cdf(lo) } else { 0.0 };
-    let p_hi = if hi.is_finite() { standard_normal_cdf(hi) } else { 1.0 };
+    let phi_lo = if lo.is_finite() {
+        standard_normal_pdf(lo)
+    } else {
+        0.0
+    };
+    let phi_hi = if hi.is_finite() {
+        standard_normal_pdf(hi)
+    } else {
+        0.0
+    };
+    let p_lo = if lo.is_finite() {
+        standard_normal_cdf(lo)
+    } else {
+        0.0
+    };
+    let p_hi = if hi.is_finite() {
+        standard_normal_cdf(hi)
+    } else {
+        1.0
+    };
     let denom = p_hi - p_lo;
     if denom.abs() < 1e-12 {
         // Interval probability is negligible; return midpoint.
@@ -154,7 +171,8 @@ fn erf_approx(x: f32) -> f32 {
     let sign = if x < 0.0 { -1.0_f32 } else { 1.0_f32 };
     let x = crate::compat::math::fabsf(x);
     let t = 1.0 / (1.0 + p * x);
-    let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * crate::compat::math::expf(-x * x);
+    let y = 1.0
+        - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * crate::compat::math::expf(-x * x);
     sign * y
 }
 
@@ -184,7 +202,11 @@ mod tests {
         assert_eq!(cb.centroids.len(), 2);
         assert_eq!(cb.boundaries.len(), 1);
         // For N(0,1) at 1-bit the boundary should be near 0.
-        assert!(cb.boundaries[0].abs() < 0.1, "boundary={}", cb.boundaries[0]);
+        assert!(
+            cb.boundaries[0].abs() < 0.1,
+            "boundary={}",
+            cb.boundaries[0]
+        );
     }
 
     #[test]

@@ -6,8 +6,8 @@
 //!
 //! Run: `cargo run --example federated_search`
 
+use bitpolar::traits::{SerializableCode, VectorQuantizer};
 use bitpolar::TurboQuantizer;
-use bitpolar::traits::{VectorQuantizer, SerializableCode};
 
 fn main() {
     // Shared parameters — distributed to all nodes via config
@@ -22,7 +22,11 @@ fn main() {
     // Node A: encodes vectors 0-99
     let node_a = TurboQuantizer::new(dim, bits, projections, seed).unwrap();
     let vectors_a: Vec<Vec<f32>> = (0..100)
-        .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.001).sin()).collect())
+        .map(|i| {
+            (0..dim)
+                .map(|j| ((i * dim + j) as f32 * 0.001).sin())
+                .collect()
+        })
         .collect();
     let codes_a: Vec<Vec<u8>> = vectors_a
         .iter()
@@ -33,7 +37,11 @@ fn main() {
     // Node B: encodes vectors 100-199 (completely independent)
     let node_b = TurboQuantizer::new(dim, bits, projections, seed).unwrap();
     let vectors_b: Vec<Vec<f32>> = (100..200)
-        .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.001).sin()).collect())
+        .map(|i| {
+            (0..dim)
+                .map(|j| ((i * dim + j) as f32 * 0.001).sin())
+                .collect()
+        })
         .collect();
     let codes_b: Vec<Vec<u8>> = vectors_b
         .iter()

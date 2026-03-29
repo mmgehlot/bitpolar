@@ -18,7 +18,10 @@ fn main() {
     let num_heads = 4;
     let mut cache = MultiHeadKvCache::new(num_heads, &config).unwrap();
 
-    println!("=== Multi-Head KV Cache ({} heads × {} dim, {}-bit) ===\n", num_heads, config.head_dim, config.bits);
+    println!(
+        "=== Multi-Head KV Cache ({} heads × {} dim, {}-bit) ===\n",
+        num_heads, config.head_dim, config.bits
+    );
 
     // Simulate 50 tokens
     for token in 0..50 {

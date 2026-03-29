@@ -157,7 +157,11 @@ impl QjlSketch {
         }
 
         let signs = bytes[7..7 + n_sign_bytes].to_vec();
-        Ok(Self { signs, num_projections, norm })
+        Ok(Self {
+            signs,
+            num_projections,
+            norm,
+        })
     }
 }
 
@@ -237,7 +241,10 @@ impl QjlQuantizer {
         }
         // num_projections is stored as u16 in compact format; reject oversized values.
         if projections > u16::MAX as usize {
-            return Err(TurboQuantError::DimensionTooLarge(projections, u16::MAX as usize));
+            return Err(TurboQuantError::DimensionTooLarge(
+                projections,
+                u16::MAX as usize,
+            ));
         }
 
         use rand::SeedableRng;
@@ -365,11 +372,7 @@ impl QjlQuantizer {
             fields(dim = self.dim, projections = self.num_projections)
         )
     )]
-    pub fn inner_product_estimate(
-        &self,
-        sketch: &QjlSketch,
-        query: &[f32],
-    ) -> Result<f32> {
+    pub fn inner_product_estimate(&self, sketch: &QjlSketch, query: &[f32]) -> Result<f32> {
         if query.len() != self.dim {
             return Err(TurboQuantError::DimensionMismatch {
                 expected: self.dim,
@@ -384,8 +387,8 @@ impl QjlQuantizer {
         }
 
         // Scale factor: ||v|| * √(π/2) / m
-        let scale =
-            sketch.norm * crate::compat::math::sqrtf(core::f32::consts::FRAC_PI_2) / self.num_projections as f32;
+        let scale = sketch.norm * crate::compat::math::sqrtf(core::f32::consts::FRAC_PI_2)
+            / self.num_projections as f32;
 
         // Sum over projections: sign(gᵢ·v) * (gᵢ·q)
         let mut sum = 0.0f32;
@@ -435,7 +438,8 @@ impl QjlQuantizer {
             return Ok(0.0);
         }
 
-        let scale = norm * crate::compat::math::sqrtf(core::f32::consts::FRAC_PI_2) / self.num_projections as f32;
+        let scale = norm * crate::compat::math::sqrtf(core::f32::consts::FRAC_PI_2)
+            / self.num_projections as f32;
 
         let mut sum = 0.0f32;
         for p in 0..self.num_projections {
@@ -568,7 +572,11 @@ mod tests {
 
         let query = vec![1.0_f32; 8];
         let est = q.inner_product_estimate(&sketch, &query).unwrap();
-        assert!(est.abs() < 1e-10, "Zero vector IP should be ~0, got {}", est);
+        assert!(
+            est.abs() < 1e-10,
+            "Zero vector IP should be ~0, got {}",
+            est
+        );
     }
 
     #[test]

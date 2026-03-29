@@ -30,10 +30,12 @@ fn main() {
     //    Keys and values are generated deterministically from token index.
     let num_tokens = 100usize;
     for t in 0..num_tokens {
-        let key: Vec<f32> =
-            (0..config.head_dim).map(|i| ((t * config.head_dim + i) as f32 * 0.01).sin()).collect();
-        let val: Vec<f32> =
-            (0..config.head_dim).map(|i| ((t * config.head_dim + i) as f32 * 0.01).cos()).collect();
+        let key: Vec<f32> = (0..config.head_dim)
+            .map(|i| ((t * config.head_dim + i) as f32 * 0.01).sin())
+            .collect();
+        let val: Vec<f32> = (0..config.head_dim)
+            .map(|i| ((t * config.head_dim + i) as f32 * 0.01).cos())
+            .collect();
         cache.push(&key, &val).expect("push failed");
     }
 
@@ -44,8 +46,12 @@ fn main() {
 
     // 4. Compute attention scores for a query vector.
     //    Scores are pre-softmax: score_t = IP(query, key_t) / sqrt(head_dim).
-    let query: Vec<f32> = (0..config.head_dim).map(|i| (i as f32 * 0.02).sin()).collect();
-    let scores = cache.attention_scores(&query).expect("attention_scores failed");
+    let query: Vec<f32> = (0..config.head_dim)
+        .map(|i| (i as f32 * 0.02).sin())
+        .collect();
+    let scores = cache
+        .attention_scores(&query)
+        .expect("attention_scores failed");
     assert_eq!(scores.len(), num_tokens);
 
     // 5. Find top-5 attended positions.

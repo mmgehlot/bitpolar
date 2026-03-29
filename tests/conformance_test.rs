@@ -58,12 +58,12 @@ fn theorem1_mse_distortion_bound() {
             let v = make_vector(dim, trial, bits as usize);
             let code = q.encode(&v).unwrap();
             let decoded = q.decode(&code);
-            let mse: f64 =
-                v.iter()
-                    .zip(decoded.iter())
-                    .map(|(a, b)| (*a as f64 - *b as f64).powi(2))
-                    .sum::<f64>()
-                    / dim as f64;
+            let mse: f64 = v
+                .iter()
+                .zip(decoded.iter())
+                .map(|(a, b)| (*a as f64 - *b as f64).powi(2))
+                .sum::<f64>()
+                / dim as f64;
             total_mse += mse;
         }
         let avg_mse = total_mse / trials as f64;
@@ -281,7 +281,10 @@ fn qjl_variance_bound() {
     let mean = estimates.iter().sum::<f64>() / trials as f64;
     let variance = estimates.iter().map(|e| (e - mean).powi(2)).sum::<f64>() / trials as f64;
 
-    assert!(variance.is_finite(), "QJL variance should be finite, got {variance}");
+    assert!(
+        variance.is_finite(),
+        "QJL variance should be finite, got {variance}"
+    );
     // Loose ceiling: across random v's the cross-pair variance can exceed the
     // single-pair bound, so we use 200× as a sanity check.
     assert!(

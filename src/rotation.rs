@@ -13,7 +13,10 @@ use crate::error::{Result, TurboQuantError};
 /// operations. The matrix is deterministic: same `(dim, seed)` always
 /// produces the same rotation.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct StoredRotation {
     /// Vector dimension
     dim: usize,
@@ -56,8 +59,16 @@ impl StoredRotation {
     #[inline]
     pub fn apply_slice(&self, slice: &[f32], out: &mut Vec<f32>) {
         let d = self.dim;
-        debug_assert_eq!(slice.len(), d, "apply_slice: slice.len() must equal self.dim");
-        debug_assert_eq!(self.data.len(), d * d, "apply_slice: data.len() must equal dim*dim");
+        debug_assert_eq!(
+            slice.len(),
+            d,
+            "apply_slice: slice.len() must equal self.dim"
+        );
+        debug_assert_eq!(
+            self.data.len(),
+            d * d,
+            "apply_slice: data.len() must equal dim*dim"
+        );
         // Defensive: clear output to zeros on dimension mismatch (prevents stale data)
         out.clear();
         out.resize(d, 0.0);
@@ -79,8 +90,16 @@ impl StoredRotation {
     #[inline]
     pub fn apply_inverse_slice(&self, slice: &[f32], out: &mut Vec<f32>) {
         let d = self.dim;
-        debug_assert_eq!(slice.len(), d, "apply_inverse_slice: slice.len() must equal self.dim");
-        debug_assert_eq!(self.data.len(), d * d, "apply_inverse_slice: data.len() must equal dim*dim");
+        debug_assert_eq!(
+            slice.len(),
+            d,
+            "apply_inverse_slice: slice.len() must equal self.dim"
+        );
+        debug_assert_eq!(
+            self.data.len(),
+            d * d,
+            "apply_inverse_slice: data.len() must equal dim*dim"
+        );
         // Defensive: clear output to zeros on dimension mismatch (prevents stale data)
         out.clear();
         out.resize(d, 0.0);
@@ -131,7 +150,10 @@ impl StoredRotation {
 
             // Fill dim×dim matrix with N(0,1) entries.
             let raw: Vec<f32> = (0..dim * dim)
-                .map(|_| <StandardNormal as rand_distr::Distribution<f64>>::sample(&dist, &mut rng) as f32)
+                .map(|_| {
+                    <StandardNormal as rand_distr::Distribution<f64>>::sample(&dist, &mut rng)
+                        as f32
+                })
                 .collect();
 
             let m = DMatrix::from_row_slice(dim, dim, &raw);
@@ -140,7 +162,11 @@ impl StoredRotation {
             let q = qr.q();
 
             // Ensure positive determinant (QR can produce reflections).
-            let det_sign = if q.determinant() >= 0.0 { 1.0_f32 } else { -1.0_f32 };
+            let det_sign = if q.determinant() >= 0.0 {
+                1.0_f32
+            } else {
+                -1.0_f32
+            };
             let mut data = vec![0.0_f32; dim * dim];
             for i in 0..dim {
                 for j in 0..dim {
@@ -153,9 +179,9 @@ impl StoredRotation {
         #[cfg(not(feature = "std"))]
         {
             // Fallback: random-sign diagonal matrix (not truly Haar but valid).
+            use rand::Rng;
             use rand::SeedableRng;
             use rand_chacha::ChaCha8Rng;
-            use rand::Rng;
 
             let mut rng = ChaCha8Rng::seed_from_u64(seed);
             let mut data = vec![0.0_f32; dim * dim];
@@ -202,7 +228,10 @@ mod tests {
 
     #[test]
     fn test_zero_dimension_error() {
-        assert!(matches!(StoredRotation::new(0, 42), Err(TurboQuantError::ZeroDimension)));
+        assert!(matches!(
+            StoredRotation::new(0, 42),
+            Err(TurboQuantError::ZeroDimension)
+        ));
     }
 
     #[test]

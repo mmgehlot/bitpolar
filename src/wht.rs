@@ -27,9 +27,9 @@
 //! power-of-2 dimensions (128, 256, 512, 1024).
 
 use crate::error::{Result, TurboQuantError};
+use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use rand::Rng;
 
 /// A randomized Walsh-Hadamard Transform rotation.
 ///
@@ -51,7 +51,10 @@ use rand::Rng;
 /// // recovered ≈ v (within floating-point precision)
 /// ```
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct WhtRotation {
     /// Original vector dimension (may not be power of 2)
     dim: usize,
@@ -82,7 +85,12 @@ impl WhtRotation {
             .map(|_| if rng.gen::<bool>() { 1.0_f32 } else { -1.0_f32 })
             .collect();
 
-        Ok(Self { dim, padded_dim, signs, seed })
+        Ok(Self {
+            dim,
+            padded_dim,
+            signs,
+            seed,
+        })
     }
 
     /// Return the original (unpadded) dimension.
@@ -104,7 +112,13 @@ impl WhtRotation {
     ///
     /// Returns a new vector of length `self.dim()`.
     pub fn forward(&self, vector: &[f32]) -> Vec<f32> {
-        assert_eq!(vector.len(), self.dim, "WhtRotation::forward: expected {} dims, got {}", self.dim, vector.len());
+        assert_eq!(
+            vector.len(),
+            self.dim,
+            "WhtRotation::forward: expected {} dims, got {}",
+            self.dim,
+            vector.len()
+        );
 
         // Zero-pad to power of 2
         let mut buf = vec![0.0_f32; self.padded_dim];
@@ -129,7 +143,13 @@ impl WhtRotation {
     /// diagonal is also self-inverse (D = D^{-1}), the inverse is: WHT then
     /// sign-flip. Note the order is reversed from the forward transform.
     pub fn inverse(&self, vector: &[f32]) -> Vec<f32> {
-        assert_eq!(vector.len(), self.dim, "WhtRotation::inverse: expected {} dims, got {}", self.dim, vector.len());
+        assert_eq!(
+            vector.len(),
+            self.dim,
+            "WhtRotation::inverse: expected {} dims, got {}",
+            self.dim,
+            vector.len()
+        );
 
         // Zero-pad to power of 2
         let mut buf = vec![0.0_f32; self.padded_dim];
@@ -178,7 +198,11 @@ impl WhtRotation {
 /// pairs of elements are combined with addition and subtraction.
 pub(crate) fn fwht_in_place(data: &mut [f32]) {
     let n = data.len();
-    assert!(n.is_power_of_two(), "fwht_in_place: length {} must be power of 2", n);
+    assert!(
+        n.is_power_of_two(),
+        "fwht_in_place: length {} must be power of 2",
+        n
+    );
 
     let mut half = 1;
     while half < n {
@@ -187,8 +211,8 @@ pub(crate) fn fwht_in_place(data: &mut [f32]) {
             for j in i..i + half {
                 let a = data[j];
                 let b = data[j + half];
-                data[j] = a + b;           // butterfly: add
-                data[j + half] = a - b;    // butterfly: subtract
+                data[j] = a + b; // butterfly: add
+                data[j + half] = a - b; // butterfly: subtract
             }
             i += half * 2;
         }
@@ -329,7 +353,9 @@ mod tests {
                 assert!(
                     (a - b).abs() < 1e-4,
                     "pow2 round-trip failed at dim={}: {} vs {}",
-                    dim, a, b
+                    dim,
+                    a,
+                    b
                 );
             }
         }
@@ -353,7 +379,10 @@ mod tests {
 
     #[test]
     fn test_zero_dimension_error() {
-        assert!(matches!(WhtRotation::new(0, 42), Err(TurboQuantError::ZeroDimension)));
+        assert!(matches!(
+            WhtRotation::new(0, 42),
+            Err(TurboQuantError::ZeroDimension)
+        ));
     }
 
     #[test]
@@ -362,9 +391,11 @@ mod tests {
         let haar = crate::rotation::StoredRotation::new(768, 42).unwrap();
         // WHT: 1024 × 4 = 4096 bytes (padded to pow2=1024)
         // Haar: 768² × 4 = 2,359,296 bytes
-        assert!(wht.size_bytes() < haar.size_bytes() / 100,
+        assert!(
+            wht.size_bytes() < haar.size_bytes() / 100,
             "WHT ({}) should be >100x smaller than Haar ({})",
-            wht.size_bytes(), haar.size_bytes()
+            wht.size_bytes(),
+            haar.size_bytes()
         );
     }
 
@@ -390,7 +421,12 @@ mod tests {
         let mut recovered = Vec::new();
         wht.apply_inverse_slice(&out, &mut recovered);
         for (a, b) in v.iter().zip(recovered.iter()) {
-            assert!((a - b).abs() < 1e-4, "apply_slice round-trip: {} vs {}", a, b);
+            assert!(
+                (a - b).abs() < 1e-4,
+                "apply_slice round-trip: {} vs {}",
+                a,
+                b
+            );
         }
     }
 }

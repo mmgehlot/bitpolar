@@ -32,7 +32,7 @@
 
 use std::panic::catch_unwind;
 
-use crate::{TurboCode, TurboQuantizer, TurboQuantError};
+use crate::{TurboCode, TurboQuantError, TurboQuantizer};
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -95,9 +95,8 @@ pub unsafe extern "C" fn bitpolar_new(
     seed: u64,
     err_out: *mut i32,
 ) -> *mut TurboQuantizer {
-    let result = catch_unwind(|| {
-        TurboQuantizer::new(dim as usize, bits, projections as usize, seed)
-    });
+    let result =
+        catch_unwind(|| TurboQuantizer::new(dim as usize, bits, projections as usize, seed));
 
     match result {
         Ok(Ok(q)) => {
@@ -603,9 +602,7 @@ mod tests {
         let query = [0.5_f32; 8];
         let mut result = 0.0_f32;
         // null code pointer
-        let rc = unsafe {
-            bitpolar_inner_product(q, ptr::null(), query.as_ptr(), 8, &mut result)
-        };
+        let rc = unsafe { bitpolar_inner_product(q, ptr::null(), query.as_ptr(), 8, &mut result) };
         assert_eq!(rc, -4);
 
         unsafe { bitpolar_free(q) };
@@ -615,9 +612,7 @@ mod tests {
     fn ffi_encode_null_returns_null() {
         let mut err: i32 = 0;
         // null quantizer
-        let code = unsafe {
-            bitpolar_encode(ptr::null(), [0.0_f32; 8].as_ptr(), 8, &mut err)
-        };
+        let code = unsafe { bitpolar_encode(ptr::null(), [0.0_f32; 8].as_ptr(), 8, &mut err) };
         assert!(code.is_null());
         assert_eq!(err, -4);
     }
@@ -669,14 +664,11 @@ mod tests {
 
         // Write bytes.
         let mut buf = vec![0u8; needed as usize];
-        let written = unsafe {
-            bitpolar_code_to_bytes(code, buf.as_mut_ptr(), buf.len() as u32)
-        };
+        let written = unsafe { bitpolar_code_to_bytes(code, buf.as_mut_ptr(), buf.len() as u32) };
         assert_eq!(written, needed);
 
         // Deserialize.
-        let code2 =
-            unsafe { bitpolar_code_from_bytes(buf.as_ptr(), buf.len() as u32, &mut err) };
+        let code2 = unsafe { bitpolar_code_from_bytes(buf.as_ptr(), buf.len() as u32, &mut err) };
         assert_eq!(err, 0);
         assert!(!code2.is_null());
 
@@ -801,9 +793,8 @@ mod tests {
         // Verify scores match sequential single-code calls.
         for (i, &code_ptr) in codes.iter().enumerate() {
             let mut single = 0.0_f32;
-            let rc2 = unsafe {
-                bitpolar_inner_product(q, code_ptr, query.as_ptr(), 8, &mut single)
-            };
+            let rc2 =
+                unsafe { bitpolar_inner_product(q, code_ptr, query.as_ptr(), 8, &mut single) };
             assert_eq!(rc2, 0);
             assert!(
                 (scores[i] - single).abs() < 1e-5,
@@ -828,14 +819,7 @@ mod tests {
         let mut scores: [f32; 0] = [];
         // Pass null for codes array (n_codes=0 — no codes to process).
         let rc = unsafe {
-            bitpolar_batch_inner_product(
-                q,
-                ptr::null(),
-                0,
-                query.as_ptr(),
-                8,
-                scores.as_mut_ptr(),
-            )
+            bitpolar_batch_inner_product(q, ptr::null(), 0, query.as_ptr(), 8, scores.as_mut_ptr())
         };
         assert_eq!(rc, 0);
 

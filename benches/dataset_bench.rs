@@ -3,12 +3,12 @@
 //!
 //! Run: `cargo bench --bench dataset_bench`
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use bitpolar::TurboQuantizer;
 use bitpolar::traits::VectorQuantizer;
+use bitpolar::TurboQuantizer;
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use rand::Rng;
 
 /// Generate n random vectors of given dimension using a seeded RNG.
 fn generate_vectors(n: usize, dim: usize, seed: u64) -> Vec<Vec<f32>> {
@@ -81,7 +81,10 @@ fn bench_dataset(c: &mut Criterion) {
             .map(|code| q.inner_product_estimate(code, query).unwrap())
             .collect();
         let recall = recall_at_k(&exact_scores, &approx_scores, 10);
-        eprintln!("{}: recall@10 = {:.3} ({}-bit, n={})", name, recall, bits, n);
+        eprintln!(
+            "{}: recall@10 = {:.3} ({}-bit, n={})",
+            name, recall, bits, n
+        );
     }
 
     group.finish();

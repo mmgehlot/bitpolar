@@ -5,8 +5,8 @@
 //!
 //! Run: `cargo run --example search_brute_force`
 
-use bitpolar::TurboQuantizer;
 use bitpolar::traits::VectorQuantizer;
+use bitpolar::TurboQuantizer;
 
 fn main() {
     let dim = 128;
@@ -14,7 +14,11 @@ fn main() {
 
     // Generate 1000 random vectors
     let vectors: Vec<Vec<f32>> = (0..1000)
-        .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.001).sin()).collect())
+        .map(|i| {
+            (0..dim)
+                .map(|j| ((i * dim + j) as f32 * 0.001).sin())
+                .collect()
+        })
         .collect();
 
     // Encode all vectors

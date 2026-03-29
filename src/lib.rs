@@ -186,9 +186,9 @@ pub use rotation::StoredRotation;
 pub use wht::WhtRotation;
 
 // Tiered, resilient, and search modules
-pub use tiered::{Tier, TieredCode, TieredQuantization};
 pub use resilient::{ResilientCode, ResilientQuantizer};
 pub use search::OversampledSearch;
+pub use tiered::{Tier, TieredCode, TieredQuantization};
 
 /// Compact binary format version for all serialized codes.
 ///

@@ -37,7 +37,10 @@ mod neon {
     /// Panics in debug mode on dimension mismatch; UB in release if violated.
     #[inline]
     pub(super) unsafe fn matvec(matrix: &[f32], vector: &[f32], dim: usize, out: &mut [f32]) {
-        debug_assert!(matrix.len() >= out.len() * dim, "matrix too short for matvec");
+        debug_assert!(
+            matrix.len() >= out.len() * dim,
+            "matrix too short for matvec"
+        );
         debug_assert!(vector.len() >= dim, "vector too short for matvec");
         let rows = out.len();
         for i in 0..rows {
@@ -95,7 +98,10 @@ mod avx2 {
     #[inline]
     #[target_feature(enable = "avx2")]
     pub(super) unsafe fn matvec(matrix: &[f32], vector: &[f32], dim: usize, out: &mut [f32]) {
-        debug_assert!(matrix.len() >= out.len() * dim, "matrix too short for matvec");
+        debug_assert!(
+            matrix.len() >= out.len() * dim,
+            "matrix too short for matvec"
+        );
         debug_assert!(vector.len() >= dim, "vector too short for matvec");
         let rows = out.len();
         for i in 0..rows {
@@ -134,7 +140,7 @@ mod avx2 {
 
         // Step 2: reduce 4 lanes → 2 → 1
         let shuf = _mm_movehdup_ps(sum128); // [1,1,3,3]
-        let sums = _mm_add_ps(sum128, shuf);  // [0+1, ?, 2+3, ?]
+        let sums = _mm_add_ps(sum128, shuf); // [0+1, ?, 2+3, ?]
         let shuf2 = _mm_movehl_ps(shuf, sums); // [2+3, ?, ?, ?]
         let total = _mm_add_ss(sums, shuf2);
         let mut scalar = _mm_cvtss_f32(total);
@@ -339,8 +345,12 @@ mod tests {
     #[test]
     fn test_dot_product_orthogonal() {
         // Alternating +1/-1 should cancel to near zero
-        let a: Vec<f32> = (0..64).map(|i| if i % 2 == 0 { 1.0 } else { -1.0 }).collect();
-        let b: Vec<f32> = (0..64).map(|i| if i % 2 == 0 { 1.0 } else { 1.0 }).collect();
+        let a: Vec<f32> = (0..64)
+            .map(|i| if i % 2 == 0 { 1.0 } else { -1.0 })
+            .collect();
+        let b: Vec<f32> = (0..64)
+            .map(|i| if i % 2 == 0 { 1.0 } else { 1.0 })
+            .collect();
         let expected = scalar_dot(&a, &b);
         let got = dot_product(&a, &b);
         assert!((got - expected).abs() < 1e-4);
@@ -350,8 +360,7 @@ mod tests {
     fn test_matvec_multiply_matches_scalar() {
         let dim = 16usize;
         let rows = 8usize;
-        let matrix: Vec<f32> =
-            (0..(rows * dim)).map(|i| (i as f32 * 0.1).sin()).collect();
+        let matrix: Vec<f32> = (0..(rows * dim)).map(|i| (i as f32 * 0.1).sin()).collect();
         let vector: Vec<f32> = (0..dim).map(|i| i as f32 * 0.05).collect();
 
         let expected = scalar_matvec(&matrix, &vector, dim);
@@ -381,7 +390,10 @@ mod tests {
         let mut out = vec![0.0f32; 4];
         matvec_multiply(&matrix, &vector, dim, &mut out);
         for (i, (&o, &v)) in out.iter().zip(vector.iter()).enumerate() {
-            assert!((o - v).abs() < 1e-6, "identity multiply failed at index {i}");
+            assert!(
+                (o - v).abs() < 1e-6,
+                "identity multiply failed at index {i}"
+            );
         }
     }
 
@@ -401,8 +413,9 @@ mod tests {
     fn test_matvec_multiply_larger() {
         let dim = 128usize;
         let rows = 32usize;
-        let matrix: Vec<f32> =
-            (0..(rows * dim)).map(|i| ((i as f32) * 0.01).cos()).collect();
+        let matrix: Vec<f32> = (0..(rows * dim))
+            .map(|i| ((i as f32) * 0.01).cos())
+            .collect();
         let vector: Vec<f32> = (0..dim).map(|j| (j as f32 * 0.03).sin()).collect();
 
         let expected = scalar_matvec(&matrix, &vector, dim);

@@ -7,8 +7,8 @@
 //!
 //! Run: `cargo run --example multi_tenant`
 
-use bitpolar::TurboQuantizer;
 use bitpolar::traits::VectorQuantizer;
+use bitpolar::TurboQuantizer;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -75,6 +75,9 @@ fn main() {
     use bitpolar::traits::SerializableCode;
     let code1 = q1.encode(&v).unwrap().to_compact_bytes();
     let code2 = q2.encode(&v).unwrap().to_compact_bytes();
-    assert_ne!(code1, code2, "Different tenants must produce different codes");
+    assert_ne!(
+        code1, code2,
+        "Different tenants must produce different codes"
+    );
     println!("\nTenant isolation verified: same vector → different codes per tenant");
 }

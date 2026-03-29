@@ -5,15 +5,17 @@
 //! - batch_ip_estimate for database sizes 100, 1 000, 10 000
 //! - compact_serialize / compact_deserialize round-trip
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use bitpolar::{TurboCode, TurboQuantizer};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 const SEARCH_DIMS: &[usize] = &[64, 128, 256, 512, 1024];
 const BITS: u8 = 4;
 const SEED: u64 = 42;
 
 fn make_vector(dim: usize, idx: usize) -> Vec<f32> {
-    (0..dim).map(|j| ((idx * dim + j) as f32 * 1e-5).sin()).collect()
+    (0..dim)
+        .map(|j| ((idx * dim + j) as f32 * 1e-5).sin())
+        .collect()
 }
 
 // ============================================================================
@@ -27,15 +29,19 @@ fn bench_fp32_dot_product(c: &mut Criterion) {
         let a: Vec<f32> = (0..dim).map(|i| (i as f32 * 0.01).sin()).collect();
         let b: Vec<f32> = (0..dim).map(|i| (i as f32 * 0.02).cos()).collect();
 
-        group.bench_with_input(BenchmarkId::new("baseline", dim), &(a, b), |bench, (a, b)| {
-            bench.iter(|| {
-                black_box(a)
-                    .iter()
-                    .zip(black_box(b).iter())
-                    .map(|(x, y)| x * y)
-                    .sum::<f32>()
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("baseline", dim),
+            &(a, b),
+            |bench, (a, b)| {
+                bench.iter(|| {
+                    black_box(a)
+                        .iter()
+                        .zip(black_box(b).iter())
+                        .map(|(x, y)| x * y)
+                        .sum::<f32>()
+                })
+            },
+        );
     }
 
     group.finish();
@@ -59,7 +65,10 @@ fn bench_turbo_ip_estimate(c: &mut Criterion) {
             BenchmarkId::new("turbo", dim),
             &(code, query),
             |b, (code, query)| {
-                b.iter(|| q.inner_product_estimate(black_box(code), black_box(query)).unwrap())
+                b.iter(|| {
+                    q.inner_product_estimate(black_box(code), black_box(query))
+                        .unwrap()
+                })
             },
         );
     }
@@ -89,7 +98,8 @@ fn bench_linear_scan(c: &mut Criterion) {
             b.iter(|| {
                 db.iter()
                     .map(|code| {
-                        q.inner_product_estimate(black_box(code), black_box(&query)).unwrap()
+                        q.inner_product_estimate(black_box(code), black_box(&query))
+                            .unwrap()
                     })
                     .fold(f32::MIN, f32::max)
             })
@@ -97,23 +107,19 @@ fn bench_linear_scan(c: &mut Criterion) {
 
         // Baseline: plain f32 dot over uncompressed database at same size.
         let fp32_db: Vec<Vec<f32>> = (0..db_size).map(|i| make_vector(dim, i)).collect();
-        group.bench_with_input(
-            BenchmarkId::new("fp32_scan", db_size),
-            &fp32_db,
-            |b, db| {
-                b.iter(|| {
-                    db.iter()
-                        .map(|v| {
-                            black_box(v)
-                                .iter()
-                                .zip(black_box(&query).iter())
-                                .map(|(a, b)| a * b)
-                                .sum::<f32>()
-                        })
-                        .fold(f32::MIN, f32::max)
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("fp32_scan", db_size), &fp32_db, |b, db| {
+            b.iter(|| {
+                db.iter()
+                    .map(|v| {
+                        black_box(v)
+                            .iter()
+                            .zip(black_box(&query).iter())
+                            .map(|(a, b)| a * b)
+                            .sum::<f32>()
+                    })
+                    .fold(f32::MIN, f32::max)
+            })
+        });
     }
 
     group.finish();
@@ -139,13 +145,12 @@ fn bench_batch_ip_estimate(c: &mut Criterion) {
             .collect();
         let query: Vec<f32> = (0..dim).map(|i| (i as f32 * 0.01).sin()).collect();
 
-        group.bench_with_input(
-            BenchmarkId::new("parallel", n_codes),
-            &codes,
-            |b, codes| {
-                b.iter(|| q.batch_inner_product(black_box(codes), black_box(&query)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("parallel", n_codes), &codes, |b, codes| {
+            b.iter(|| {
+                q.batch_inner_product(black_box(codes), black_box(&query))
+                    .unwrap()
+            })
+        });
     }
 
     group.finish();

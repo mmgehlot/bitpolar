@@ -131,7 +131,9 @@ fn cmd_compress(args: CompressArgs) -> Result<()> {
         if v.len() != dim {
             anyhow::bail!(
                 "Dimension mismatch: vector 0 has dim={}, but vector {} has dim={}",
-                dim, i, v.len()
+                dim,
+                i,
+                v.len()
             );
         }
     }
@@ -208,18 +210,29 @@ fn cmd_search(args: SearchArgs) -> Result<()> {
         .with_context(|| format!("Failed to read {}", args.index.display()))?;
 
     if data.len() < 4 {
-        anyhow::bail!("File too small to be a valid .bp file ({} bytes)", data.len());
+        anyhow::bail!(
+            "File too small to be a valid .bp file ({} bytes)",
+            data.len()
+        );
     }
     let header_len = u32::from_le_bytes(data[0..4].try_into()?) as usize;
     if 4 + header_len > data.len() {
-        anyhow::bail!("Corrupt .bp file: header length {} exceeds file size {}", header_len, data.len());
+        anyhow::bail!(
+            "Corrupt .bp file: header length {} exceeds file size {}",
+            header_len,
+            data.len()
+        );
     }
     let header: serde_json::Value = serde_json::from_slice(&data[4..4 + header_len])
         .context("Failed to parse .bp file header")?;
 
     let dim = header["dim"].as_u64().context("Missing 'dim' in header")? as usize;
-    let bits = header["bits"].as_u64().context("Missing 'bits' in header")? as u8;
-    let projections = header["projections"].as_u64().context("Missing 'projections'")? as usize;
+    let bits = header["bits"]
+        .as_u64()
+        .context("Missing 'bits' in header")? as u8;
+    let projections = header["projections"]
+        .as_u64()
+        .context("Missing 'projections'")? as usize;
     let seed = header["seed"].as_u64().context("Missing 'seed'")?;
     let code_lengths: Vec<usize> = header["code_lengths"]
         .as_array()
@@ -272,7 +285,11 @@ fn cmd_bench(args: BenchArgs) -> Result<()> {
 
     // Generate random vectors
     let vectors: Vec<Vec<f32>> = (0..args.n)
-        .map(|_| (0..args.dim).map(|_| rng.gen::<f32>() * 2.0 - 1.0).collect())
+        .map(|_| {
+            (0..args.dim)
+                .map(|_| rng.gen::<f32>() * 2.0 - 1.0)
+                .collect()
+        })
         .collect();
 
     println!("BitPolar Benchmark: {} vectors, dim={}", args.n, args.dim);
@@ -327,10 +344,13 @@ fn cmd_info(args: InfoArgs) -> Result<()> {
     }
     let header_len = u32::from_le_bytes(data[0..4].try_into()?) as usize;
     if 4 + header_len > data.len() {
-        anyhow::bail!("Corrupt file: header length {} exceeds file size", header_len);
+        anyhow::bail!(
+            "Corrupt file: header length {} exceeds file size",
+            header_len
+        );
     }
-    let header: serde_json::Value = serde_json::from_slice(&data[4..4 + header_len])
-        .context("Failed to parse header")?;
+    let header: serde_json::Value =
+        serde_json::from_slice(&data[4..4 + header_len]).context("Failed to parse header")?;
 
     println!("{}", serde_json::to_string_pretty(&header)?);
     println!("File size: {}", format_bytes(data.len()));

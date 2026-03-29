@@ -8,7 +8,10 @@
 /// Use [`crate::TurboQuantizer::batch_stats`] to compute these from a
 /// collection of codes.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct BatchStats {
     /// Number of vectors in the batch
     pub count: usize,
@@ -27,7 +30,10 @@ pub struct BatchStats {
 /// These metrics are designed for integration into health check endpoints
 /// and monitoring dashboards (Prometheus, Grafana, OpenTelemetry).
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct DistortionMetrics {
     /// Exponential moving average of squared estimation error (MSE).
     ///

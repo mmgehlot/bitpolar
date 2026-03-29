@@ -24,8 +24,8 @@
 //! const results = index.search(vector, 5);
 //! ```
 
-use wasm_bindgen::prelude::*;
 use bitpolar::traits::VectorQuantizer;
+use wasm_bindgen::prelude::*;
 
 /// A WASM-compatible wrapper around BitPolar's TurboQuantizer.
 ///
@@ -48,7 +48,12 @@ impl WasmQuantizer {
     /// - `projections` — Number of QJL projections (typically dim/4)
     /// - `seed` — Random seed for deterministic rotation/projection
     #[wasm_bindgen(constructor)]
-    pub fn new(dim: usize, bits: u8, projections: usize, seed: u64) -> Result<WasmQuantizer, JsError> {
+    pub fn new(
+        dim: usize,
+        bits: u8,
+        projections: usize,
+        seed: u64,
+    ) -> Result<WasmQuantizer, JsError> {
         let inner = bitpolar::TurboQuantizer::new(dim, bits, projections, seed)
             .map_err(|e| JsError::new(&e.to_string()))?;
         // Cache code size by doing one dummy encode
@@ -59,7 +64,10 @@ impl WasmQuantizer {
         } else {
             0
         };
-        Ok(WasmQuantizer { inner, cached_code_size })
+        Ok(WasmQuantizer {
+            inner,
+            cached_code_size,
+        })
     }
 
     /// Encode a vector to compressed bytes.
@@ -70,7 +78,9 @@ impl WasmQuantizer {
         if vector.is_empty() {
             return Err(JsError::new("vector cannot be empty"));
         }
-        let code = self.inner.encode(vector)
+        let code = self
+            .inner
+            .encode(vector)
             .map_err(|e| JsError::new(&e.to_string()))?;
         use bitpolar::traits::SerializableCode;
         Ok(code.to_compact_bytes())
@@ -97,7 +107,8 @@ impl WasmQuantizer {
         use bitpolar::traits::SerializableCode;
         let code = bitpolar::TurboCode::from_compact_bytes(code_a)
             .map_err(|e| JsError::new(&e.to_string()))?;
-        self.inner.inner_product_estimate(&code, code_b_query)
+        self.inner
+            .inner_product_estimate(&code, code_b_query)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
@@ -129,7 +140,12 @@ pub struct WasmVectorIndex {
 impl WasmVectorIndex {
     /// Create a new vector index.
     #[wasm_bindgen(constructor)]
-    pub fn new(dim: usize, bits: u8, projections: usize, seed: u64) -> Result<WasmVectorIndex, JsError> {
+    pub fn new(
+        dim: usize,
+        bits: u8,
+        projections: usize,
+        seed: u64,
+    ) -> Result<WasmVectorIndex, JsError> {
         let quantizer = bitpolar::TurboQuantizer::new(dim, bits, projections, seed)
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(WasmVectorIndex {
@@ -141,7 +157,9 @@ impl WasmVectorIndex {
 
     /// Add a vector to the index.
     pub fn add(&mut self, id: u32, vector: &[f32]) -> Result<(), JsError> {
-        let code = self.quantizer.encode(vector)
+        let code = self
+            .quantizer
+            .encode(vector)
             .map_err(|e| JsError::new(&e.to_string()))?;
         use bitpolar::traits::SerializableCode;
         self.codes.push(code.to_compact_bytes());
@@ -162,7 +180,9 @@ impl WasmVectorIndex {
         for (i, code_bytes) in self.codes.iter().enumerate() {
             let code = bitpolar::TurboCode::from_compact_bytes(code_bytes)
                 .map_err(|e| JsError::new(&e.to_string()))?;
-            let score = self.quantizer.inner_product_estimate(&code, query)
+            let score = self
+                .quantizer
+                .inner_product_estimate(&code, query)
                 .map_err(|e| JsError::new(&e.to_string()))?;
             scored.push((self.ids[i], score));
         }
@@ -195,7 +215,9 @@ impl WasmVectorIndex {
         for (i, code_bytes) in self.codes.iter().enumerate() {
             let code = bitpolar::TurboCode::from_compact_bytes(code_bytes)
                 .map_err(|e| JsError::new(&e.to_string()))?;
-            let score = self.quantizer.inner_product_estimate(&code, query)
+            let score = self
+                .quantizer
+                .inner_product_estimate(&code, query)
                 .map_err(|e| JsError::new(&e.to_string()))?;
             scored.push((self.ids[i], score));
         }

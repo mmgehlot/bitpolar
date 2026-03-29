@@ -26,7 +26,6 @@
 
 use crate::error::{Result, TurboQuantError};
 use crate::tiered::Tier;
-use crate::traits::{SerializableCode, VectorQuantizer};
 use crate::TurboQuantizer;
 
 /// Adaptive quantizer that supports per-vector bit-width selection
@@ -48,7 +47,10 @@ pub struct AdaptiveQuantizer {
 
 /// Compressed code with tier metadata.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum AdaptiveCode {
     /// Hot tier (highest precision)
     Hot(crate::turbo::TurboCode),
@@ -111,11 +113,7 @@ impl AdaptiveQuantizer {
     }
 
     /// Encode a vector at the specified tier.
-    pub fn encode_adaptive(
-        &self,
-        vector: &[f32],
-        tier: Tier,
-    ) -> Result<AdaptiveCode> {
+    pub fn encode_adaptive(&self, vector: &[f32], tier: Tier) -> Result<AdaptiveCode> {
         match tier {
             Tier::Hot => Ok(AdaptiveCode::Hot(self.hot.encode(vector)?)),
             Tier::Warm => Ok(AdaptiveCode::Warm(self.warm.encode(vector)?)),
@@ -133,11 +131,7 @@ impl AdaptiveQuantizer {
     }
 
     /// Estimate inner product between a code and a query vector.
-    pub fn inner_product_estimate(
-        &self,
-        code: &AdaptiveCode,
-        query: &[f32],
-    ) -> Result<f32> {
+    pub fn inner_product_estimate(&self, code: &AdaptiveCode, query: &[f32]) -> Result<f32> {
         match code {
             AdaptiveCode::Hot(c) => self.hot.inner_product_estimate(c, query),
             AdaptiveCode::Warm(c) => self.warm.inner_product_estimate(c, query),

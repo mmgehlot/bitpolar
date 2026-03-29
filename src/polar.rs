@@ -16,7 +16,10 @@ use crate::traits::{SerializableCode, VectorQuantizer};
 ///
 /// Contains lossless f32 radii and quantized angle indices.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct PolarCode {
     /// Lossless radii for each coordinate pair (length = dim/2)
     pub(crate) radii: Vec<f32>,
@@ -82,10 +85,17 @@ impl PolarQuantizer {
         }
         // num_pairs = dim/2 is stored as u16 in compact format; reject oversized dims.
         if dim / 2 > u16::MAX as usize {
-            return Err(TurboQuantError::DimensionTooLarge(dim, u16::MAX as usize * 2));
+            return Err(TurboQuantError::DimensionTooLarge(
+                dim,
+                u16::MAX as usize * 2,
+            ));
         }
         let codebook = LloydMaxCodebook::compute(bits)?;
-        Ok(Self { dim, bits, codebook })
+        Ok(Self {
+            dim,
+            bits,
+            codebook,
+        })
     }
 
     /// The dimension this quantizer was created for.
@@ -122,7 +132,11 @@ impl PolarQuantizer {
             angle_indices.push(self.codebook.quantize(normalised));
         }
 
-        PolarCode { radii, angle_indices, bits: self.bits }
+        PolarCode {
+            radii,
+            angle_indices,
+            bits: self.bits,
+        }
     }
 
     #[inline]
@@ -185,7 +199,11 @@ impl PolarQuantizer {
         }
         validate_finite(query)?;
         let decoded = self.decode_inner(code);
-        let sq: f32 = decoded.iter().zip(query.iter()).map(|(a, b)| (a - b).powi(2)).sum();
+        let sq: f32 = decoded
+            .iter()
+            .zip(query.iter())
+            .map(|(a, b)| (a - b).powi(2))
+            .sum();
         Ok(crate::compat::math::sqrtf(sq))
     }
 }
@@ -203,12 +221,12 @@ impl PolarCode {
     /// [radii: num_pairs × f32 LE][angle_indices: num_pairs × u16 LE]
     /// ```
     pub fn to_compact_bytes(&self) -> Vec<u8> {
-        let num_pairs: u16 = self.radii.len().try_into().expect(
-            "PolarCode num_pairs exceeds u16::MAX; dimension too large for compact format",
-        );
-        let mut out = Vec::with_capacity(
-            1 + 1 + 2 + self.radii.len() * 4 + self.angle_indices.len() * 2,
-        );
+        let num_pairs: u16 =
+            self.radii.len().try_into().expect(
+                "PolarCode num_pairs exceeds u16::MAX; dimension too large for compact format",
+            );
+        let mut out =
+            Vec::with_capacity(1 + 1 + 2 + self.radii.len() * 4 + self.angle_indices.len() * 2);
         out.push(crate::COMPACT_FORMAT_VERSION);
         out.push(self.bits);
         out.extend_from_slice(&num_pairs.to_le_bytes());
@@ -243,9 +261,7 @@ impl PolarCode {
         }
         let bits = bytes[1];
         if bits == 0 || bits > 16 {
-            return Err(err(&format!(
-                "invalid bit width {bits}: must be 1..=16"
-            )));
+            return Err(err(&format!("invalid bit width {bits}: must be 1..=16")));
         }
         let num_pairs = u16::from_le_bytes([bytes[2], bytes[3]]) as usize;
 
@@ -266,7 +282,8 @@ impl PolarCode {
         let radii_start = 4;
         for i in 0..num_pairs {
             let off = radii_start + i * 4;
-            let r = f32::from_le_bytes([bytes[off], bytes[off + 1], bytes[off + 2], bytes[off + 3]]);
+            let r =
+                f32::from_le_bytes([bytes[off], bytes[off + 1], bytes[off + 2], bytes[off + 3]]);
             radii.push(r);
         }
 
@@ -278,7 +295,11 @@ impl PolarCode {
             angle_indices.push(a);
         }
 
-        Ok(Self { radii, angle_indices, bits })
+        Ok(Self {
+            radii,
+            angle_indices,
+            bits,
+        })
     }
 }
 
@@ -417,12 +438,18 @@ mod tests {
 
     #[test]
     fn test_zero_dimension_error() {
-        assert!(matches!(PolarQuantizer::new(0, 4), Err(TurboQuantError::ZeroDimension)));
+        assert!(matches!(
+            PolarQuantizer::new(0, 4),
+            Err(TurboQuantError::ZeroDimension)
+        ));
     }
 
     #[test]
     fn test_odd_dimension_error() {
-        assert!(matches!(PolarQuantizer::new(3, 4), Err(TurboQuantError::OddDimension(3))));
+        assert!(matches!(
+            PolarQuantizer::new(3, 4),
+            Err(TurboQuantError::OddDimension(3))
+        ));
     }
 
     #[test]
@@ -440,14 +467,20 @@ mod tests {
     fn test_dimension_mismatch() {
         let q = PolarQuantizer::new(8, 4).unwrap();
         let v = vec![0.0_f32; 4];
-        assert!(matches!(q.encode(&v), Err(TurboQuantError::DimensionMismatch { .. })));
+        assert!(matches!(
+            q.encode(&v),
+            Err(TurboQuantError::DimensionMismatch { .. })
+        ));
     }
 
     #[test]
     fn test_non_finite_error() {
         let q = PolarQuantizer::new(4, 4).unwrap();
         let v = vec![1.0_f32, f32::NAN, 0.0, 0.0];
-        assert!(matches!(q.encode(&v), Err(TurboQuantError::NonFiniteInput { .. })));
+        assert!(matches!(
+            q.encode(&v),
+            Err(TurboQuantError::NonFiniteInput { .. })
+        ));
     }
 
     #[test]
@@ -547,7 +580,11 @@ mod tests {
 
         fn make_vectors(n: usize, dim: usize) -> Vec<Vec<f32>> {
             (0..n)
-                .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.1).cos()).collect())
+                .map(|i| {
+                    (0..dim)
+                        .map(|j| ((i * dim + j) as f32 * 0.1).cos())
+                        .collect()
+                })
                 .collect()
         }
 
@@ -597,7 +634,10 @@ mod tests {
         fn test_batch_empty() {
             let q = PolarQuantizer::new(8, 4).unwrap();
             assert!(q.batch_encode(&[]).unwrap().is_empty());
-            assert!(q.batch_inner_product(&[], &[0.0_f32; 8]).unwrap().is_empty());
+            assert!(q
+                .batch_inner_product(&[], &[0.0_f32; 8])
+                .unwrap()
+                .is_empty());
             assert!(q.batch_decode(&[]).is_empty());
         }
 

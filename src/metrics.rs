@@ -62,15 +62,19 @@ impl MetricsCollector {
     /// Record an encode operation.
     pub fn record_encode(&self, original_bytes: usize, compressed_bytes: usize, latency_us: u64) {
         self.encode_count.fetch_add(1, Ordering::Relaxed);
-        self.encode_us_total.fetch_add(latency_us, Ordering::Relaxed);
-        self.bytes_original.fetch_add(original_bytes as u64, Ordering::Relaxed);
-        self.bytes_compressed.fetch_add(compressed_bytes as u64, Ordering::Relaxed);
+        self.encode_us_total
+            .fetch_add(latency_us, Ordering::Relaxed);
+        self.bytes_original
+            .fetch_add(original_bytes as u64, Ordering::Relaxed);
+        self.bytes_compressed
+            .fetch_add(compressed_bytes as u64, Ordering::Relaxed);
     }
 
     /// Record a decode operation.
     pub fn record_decode(&self, latency_us: u64) {
         self.decode_count.fetch_add(1, Ordering::Relaxed);
-        self.decode_us_total.fetch_add(latency_us, Ordering::Relaxed);
+        self.decode_us_total
+            .fetch_add(latency_us, Ordering::Relaxed);
     }
 
     /// Record an inner product estimation.
@@ -84,7 +88,7 @@ impl MetricsCollector {
         let encode_count = self.encode_count.load(Ordering::Relaxed);
         let encode_us = self.encode_us_total.load(Ordering::Relaxed);
         let decode_count = self.decode_count.load(Ordering::Relaxed);
-        let decode_us = self.decode_us_total.load(Ordering::Relaxed);
+        let _decode_us = self.decode_us_total.load(Ordering::Relaxed);
         let ip_count = self.ip_count.load(Ordering::Relaxed);
         let ip_us = self.ip_us_total.load(Ordering::Relaxed);
         let bytes_orig = self.bytes_original.load(Ordering::Relaxed);
@@ -96,14 +100,22 @@ impl MetricsCollector {
         out.push_str("# TYPE bitpolar_encode_total counter\n");
         out.push_str(&format!("bitpolar_encode_total {}\n", encode_count));
 
-        out.push_str("# HELP bitpolar_encode_duration_us_total Total encode latency in microseconds\n");
+        out.push_str(
+            "# HELP bitpolar_encode_duration_us_total Total encode latency in microseconds\n",
+        );
         out.push_str("# TYPE bitpolar_encode_duration_us_total counter\n");
-        out.push_str(&format!("bitpolar_encode_duration_us_total {}\n", encode_us));
+        out.push_str(&format!(
+            "bitpolar_encode_duration_us_total {}\n",
+            encode_us
+        ));
 
         if encode_count > 0 {
             out.push_str("# HELP bitpolar_encode_avg_us Average encode latency\n");
             out.push_str("# TYPE bitpolar_encode_avg_us gauge\n");
-            out.push_str(&format!("bitpolar_encode_avg_us {}\n", encode_us / encode_count));
+            out.push_str(&format!(
+                "bitpolar_encode_avg_us {}\n",
+                encode_us / encode_count
+            ));
         }
 
         out.push_str("# HELP bitpolar_decode_total Total decode operations\n");
@@ -117,7 +129,10 @@ impl MetricsCollector {
         if ip_count > 0 {
             out.push_str("# HELP bitpolar_ip_estimate_avg_us Average IP estimation latency\n");
             out.push_str("# TYPE bitpolar_ip_estimate_avg_us gauge\n");
-            out.push_str(&format!("bitpolar_ip_estimate_avg_us {}\n", ip_us / ip_count));
+            out.push_str(&format!(
+                "bitpolar_ip_estimate_avg_us {}\n",
+                ip_us / ip_count
+            ));
         }
 
         out.push_str("# HELP bitpolar_bytes_original_total Total original bytes processed\n");

@@ -50,11 +50,7 @@ pgrx::pg_module_magic!();
 /// SELECT bitpolar_compress(ARRAY[0.1, 0.2, 0.3, ...]::float4[], 4);
 /// ```
 #[pg_extern(immutable, parallel_safe)]
-fn bitpolar_compress(
-    vector: Vec<f32>,
-    bits: default!(i32, 4),
-    seed: default!(i64, 42),
-) -> Vec<u8> {
+fn bitpolar_compress(vector: Vec<f32>, bits: default!(i32, 4), seed: default!(i64, 42)) -> Vec<u8> {
     if vector.is_empty() {
         pgrx::error!("bitpolar_compress: vector cannot be empty");
     }
@@ -64,10 +60,9 @@ fn bitpolar_compress(
     let seed = seed as u64;
 
     // Create quantizer and encode
-    let q = TurboQuantizer::new(dim, bits, projections, seed)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_compress: {}", e);
-        });
+    let q = TurboQuantizer::new(dim, bits, projections, seed).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_compress: {}", e);
+    });
 
     let code = q.encode(&vector).unwrap_or_else(|e| {
         pgrx::error!("bitpolar_compress encode failed: {}", e);
@@ -106,15 +101,13 @@ fn bitpolar_decompress(
     let seed = seed as u64;
     let projections = (dim / 4).max(1);
 
-    let q = TurboQuantizer::new(dim, bits, projections, seed)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_decompress: {}", e);
-        });
+    let q = TurboQuantizer::new(dim, bits, projections, seed).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_decompress: {}", e);
+    });
 
-    let code = bitpolar::TurboCode::from_compact_bytes(&compressed)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_decompress deserialize failed: {}", e);
-        });
+    let code = bitpolar::TurboCode::from_compact_bytes(&compressed).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_decompress deserialize failed: {}", e);
+    });
 
     q.decode(&code)
 }
@@ -166,20 +159,17 @@ fn bitpolar_inner_product(
     let seed = seed as u64;
     let projections = (dim / 4).max(1);
 
-    let q = TurboQuantizer::new(dim, bits, projections, seed)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_inner_product: {}", e);
-        });
+    let q = TurboQuantizer::new(dim, bits, projections, seed).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_inner_product: {}", e);
+    });
 
-    let code = bitpolar::TurboCode::from_compact_bytes(&compressed)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_inner_product deserialize failed: {}", e);
-        });
+    let code = bitpolar::TurboCode::from_compact_bytes(&compressed).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_inner_product deserialize failed: {}", e);
+    });
 
-    q.inner_product_estimate(&code, &query)
-        .unwrap_or_else(|e| {
-            pgrx::error!("bitpolar_inner_product estimate failed: {}", e);
-        })
+    q.inner_product_estimate(&code, &query).unwrap_or_else(|e| {
+        pgrx::error!("bitpolar_inner_product estimate failed: {}", e);
+    })
 }
 
 /// Return the expected compression ratio for given parameters.
@@ -257,11 +247,7 @@ mod tests {
             .map(|(a, b)| (a - b).powi(2))
             .sum::<f32>()
             .sqrt();
-        assert!(
-            error < 5.0,
-            "Reconstruction error too high: {}",
-            error
-        );
+        assert!(error < 5.0, "Reconstruction error too high: {}", error);
     }
 
     #[pg_test]
@@ -276,7 +262,11 @@ mod tests {
     #[pg_test]
     fn test_compression_ratio() {
         let ratio = bitpolar_compression_ratio(768, 4);
-        assert!(ratio > 1.0, "Compression ratio should be > 1.0, got {}", ratio);
+        assert!(
+            ratio > 1.0,
+            "Compression ratio should be > 1.0, got {}",
+            ratio
+        );
     }
 
     #[pg_test]

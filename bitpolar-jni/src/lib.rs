@@ -43,12 +43,7 @@ pub extern "system" fn Java_com_bitpolar_TurboQuantizer_nativeNew(
     projections: jint,
     seed: jlong,
 ) -> jlong {
-    let result = TurboQuantizer::new(
-        dim as usize,
-        bits as u8,
-        projections as usize,
-        seed as u64,
-    );
+    let result = TurboQuantizer::new(dim as usize, bits as u8, projections as usize, seed as u64);
 
     match result {
         Ok(q) => Box::into_raw(Box::new(q)) as jlong,
@@ -106,7 +101,8 @@ pub extern "system" fn Java_com_bitpolar_TurboQuantizer_nativeEncode<'local>(
             match env.byte_array_from_slice(&bytes) {
                 Ok(arr) => arr,
                 Err(_) => {
-                    let _ = env.throw_new("java/lang/RuntimeException", "Failed to create byte array");
+                    let _ =
+                        env.throw_new("java/lang/RuntimeException", "Failed to create byte array");
                     JByteArray::default()
                 }
             }
@@ -153,7 +149,11 @@ pub extern "system" fn Java_com_bitpolar_TurboQuantizer_nativeDecode<'local>(
     if decoded.len() != dim as usize {
         let _ = env.throw_new(
             "java/lang/RuntimeException",
-            format!("Decode length mismatch: expected {}, got {}", dim, decoded.len()),
+            format!(
+                "Decode length mismatch: expected {}, got {}",
+                dim,
+                decoded.len()
+            ),
         );
         return std::ptr::null_mut();
     }
@@ -213,7 +213,10 @@ pub extern "system" fn Java_com_bitpolar_TurboQuantizer_nativeInnerProduct(
     };
 
     let mut query_buf = vec![0.0_f32; len];
-    if env.get_float_array_region(&query, 0, &mut query_buf).is_err() {
+    if env
+        .get_float_array_region(&query, 0, &mut query_buf)
+        .is_err()
+    {
         let _ = env.throw_new("java/lang/RuntimeException", "Failed to read query array");
         return 0.0;
     }

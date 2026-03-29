@@ -27,8 +27,9 @@ fn main() {
     //    the data is reproducible and does not require an external RNG crate.
     let db: Vec<TurboCode> = (0..1000_usize)
         .map(|i| {
-            let v: Vec<f32> =
-                (0..dim).map(|j| ((i * dim + j) as f32 * 0.01).sin()).collect();
+            let v: Vec<f32> = (0..dim)
+                .map(|j| ((i * dim + j) as f32 * 0.01).sin())
+                .collect();
             q.encode(&v).expect("encode failed")
         })
         .collect();
@@ -39,10 +40,7 @@ fn main() {
     let stats = q.batch_stats(&db);
     println!(
         "Compression: {:.2}x ratio, {:.2} bits/value ({} -> {} bytes total)",
-        stats.compression_ratio,
-        stats.bits_per_value,
-        stats.original_bytes,
-        stats.compressed_bytes,
+        stats.compression_ratio, stats.bits_per_value, stats.original_bytes, stats.compressed_bytes,
     );
 
     // 4. Build a query vector (deterministic, different pattern from the database).

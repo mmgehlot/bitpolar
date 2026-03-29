@@ -25,10 +25,10 @@
 //! ids, scores = idx.search(np.random.randn(128).astype(np.float32), top_k=10)
 //! ```
 
+use bitpolar_core::traits::{SerializableCode, VectorQuantizer};
 use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1};
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use bitpolar_core::traits::{VectorQuantizer, SerializableCode};
+use pyo3::prelude::*;
 
 /// Convert a BitPolar error to a Python ValueError.
 fn to_py_err(e: bitpolar_core::TurboQuantError) -> PyErr {
@@ -59,8 +59,7 @@ impl TurboQuantizer {
     #[pyo3(signature = (dim, bits=4, projections=None, seed=42))]
     fn new(dim: usize, bits: u8, projections: Option<usize>, seed: u64) -> PyResult<Self> {
         let proj = projections.unwrap_or((dim / 4).max(1));
-        let inner = bitpolar_core::TurboQuantizer::new(dim, bits, proj, seed)
-            .map_err(to_py_err)?;
+        let inner = bitpolar_core::TurboQuantizer::new(dim, bits, proj, seed).map_err(to_py_err)?;
         // Cache code size by doing one dummy encode at construction
         let dummy = vec![0.0_f32; dim];
         let cached_code_size = if let Ok(code) = inner.encode(&dummy) {
@@ -68,7 +67,10 @@ impl TurboQuantizer {
         } else {
             0
         };
-        Ok(TurboQuantizer { inner, cached_code_size })
+        Ok(TurboQuantizer {
+            inner,
+            cached_code_size,
+        })
     }
 
     /// Encode a vector to compact bytes.
@@ -102,8 +104,7 @@ impl TurboQuantizer {
         code: PyReadonlyArray1<'py, u8>,
     ) -> PyResult<Py<PyArray1<f32>>> {
         let bytes = code.as_slice()?;
-        let turbo_code = bitpolar_core::TurboCode::from_compact_bytes(bytes)
-            .map_err(to_py_err)?;
+        let turbo_code = bitpolar_core::TurboCode::from_compact_bytes(bytes).map_err(to_py_err)?;
         let decoded = self.inner.decode(&turbo_code);
         Ok(decoded.into_pyarray(py).unbind())
     }
@@ -118,8 +119,8 @@ impl TurboQuantizer {
     ) -> PyResult<f32> {
         let code_bytes = code.as_slice()?;
         let query_slice = query.as_slice()?;
-        let turbo_code = bitpolar_core::TurboCode::from_compact_bytes(code_bytes)
-            .map_err(to_py_err)?;
+        let turbo_code =
+            bitpolar_core::TurboCode::from_compact_bytes(code_bytes).map_err(to_py_err)?;
         self.inner
             .inner_product_estimate(&turbo_code, query_slice)
             .map_err(to_py_err)
@@ -168,8 +169,8 @@ impl VectorIndex {
     #[pyo3(signature = (dim, bits=4, projections=None, seed=42))]
     fn new(dim: usize, bits: u8, projections: Option<usize>, seed: u64) -> PyResult<Self> {
         let proj = projections.unwrap_or((dim / 4).max(1));
-        let quantizer = bitpolar_core::TurboQuantizer::new(dim, bits, proj, seed)
-            .map_err(to_py_err)?;
+        let quantizer =
+            bitpolar_core::TurboQuantizer::new(dim, bits, proj, seed).map_err(to_py_err)?;
         Ok(VectorIndex {
             quantizer,
             codes: Vec::new(),
@@ -201,9 +202,10 @@ impl VectorIndex {
         // Score all vectors
         let mut scored: Vec<(u64, f32)> = Vec::with_capacity(self.codes.len());
         for (i, code_bytes) in self.codes.iter().enumerate() {
-            let code = bitpolar_core::TurboCode::from_compact_bytes(code_bytes)
-                .map_err(to_py_err)?;
-            let score = self.quantizer
+            let code =
+                bitpolar_core::TurboCode::from_compact_bytes(code_bytes).map_err(to_py_err)?;
+            let score = self
+                .quantizer
                 .inner_product_estimate(&code, query_slice)
                 .map_err(to_py_err)?;
             scored.push((self.ids[i], score));
@@ -227,7 +229,11 @@ impl VectorIndex {
     }
 
     fn __repr__(&self) -> String {
-        format!("VectorIndex(size={}, dim={})", self.codes.len(), self.quantizer.dim())
+        format!(
+            "VectorIndex(size={}, dim={})",
+            self.codes.len(),
+            self.quantizer.dim()
+        )
     }
 }
 

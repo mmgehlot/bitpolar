@@ -6,8 +6,8 @@
 //!
 //! Run: `cargo run --example search_oversampled`
 
-use bitpolar::TurboQuantizer;
 use bitpolar::traits::VectorQuantizer;
+use bitpolar::TurboQuantizer;
 
 fn main() {
     let dim = 128;
@@ -19,7 +19,11 @@ fn main() {
 
     // Generate vectors
     let vectors: Vec<Vec<f32>> = (0..n)
-        .map(|i| (0..dim).map(|j| ((i * dim + j) as f32 * 0.001).sin()).collect())
+        .map(|i| {
+            (0..dim)
+                .map(|j| ((i * dim + j) as f32 * 0.001).sin())
+                .collect()
+        })
         .collect();
     let codes: Vec<_> = vectors.iter().map(|v| q.encode(v).unwrap()).collect();
 
@@ -32,19 +36,30 @@ fn main() {
         .map(|(i, code)| (i, q.inner_product_estimate(code, query).unwrap()))
         .collect();
     approx_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    let candidates: Vec<usize> = approx_scores.iter().take(top_k * oversample).map(|(i, _)| *i).collect();
+    let candidates: Vec<usize> = approx_scores
+        .iter()
+        .take(top_k * oversample)
+        .map(|(i, _)| *i)
+        .collect();
 
     // Phase 2: Exact re-ranking on original vectors
     let mut exact_scores: Vec<(usize, f32)> = candidates
         .iter()
         .map(|&i| {
-            let exact: f32 = vectors[i].iter().zip(query.iter()).map(|(a, b)| a * b).sum();
+            let exact: f32 = vectors[i]
+                .iter()
+                .zip(query.iter())
+                .map(|(a, b)| a * b)
+                .sum();
             (i, exact)
         })
         .collect();
     exact_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
-    println!("Oversampled search ({}x oversample, top-{}):", oversample, top_k);
+    println!(
+        "Oversampled search ({}x oversample, top-{}):",
+        oversample, top_k
+    );
     for (id, score) in exact_scores.iter().take(top_k) {
         println!("  Vector {}: exact score = {:.6}", id, score);
     }

@@ -177,9 +177,8 @@ where
         // ------------------------------------------------------------------
         // Phase 4: sort by descending exact score and return top k.
         // ------------------------------------------------------------------
-        exact_scores.sort_unstable_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal)
-        });
+        exact_scores
+            .sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         exact_scores.truncate(k);
 
         Ok(exact_scores)
@@ -216,7 +215,9 @@ mod tests {
     }
 
     fn make_vector(dim: usize, seed: usize) -> Vec<f32> {
-        (0..dim).map(|i| ((seed * dim + i) as f32 * 0.37).sin()).collect()
+        (0..dim)
+            .map(|i| ((seed * dim + i) as f32 * 0.37).sin())
+            .collect()
     }
 
     #[test]

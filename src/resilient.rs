@@ -25,8 +25,8 @@
 
 use crate::error::Result;
 use crate::polar::{PolarCode, PolarQuantizer};
-use crate::turbo::{TurboCode, TurboQuantizer};
 use crate::traits::VectorQuantizer;
+use crate::turbo::{TurboCode, TurboQuantizer};
 
 // ---------------------------------------------------------------------------
 // ResilientCode
@@ -34,7 +34,10 @@ use crate::traits::VectorQuantizer;
 
 /// A code produced by [`ResilientQuantizer`], tagged by which encoder was used.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum ResilientCode {
     /// Encoded by the primary [`TurboQuantizer`].
     Primary(TurboCode),
@@ -280,7 +283,7 @@ mod tests {
     fn test_dimension_mismatch_both_fail() {
         let rq = make_rq(32);
         let v = vec![0.0_f32; 8]; // wrong dim
-        // Both primary and fallback have dim=32, so both fail.
+                                  // Both primary and fallback have dim=32, so both fail.
         assert!(rq.encode(&v).is_err());
     }
 
@@ -303,7 +306,10 @@ mod tests {
         let q = make_query(32);
         let ip1 = rq.inner_product_estimate(&code, &q).unwrap();
         let ip2 = rq.inner_product_estimate(&cloned, &q).unwrap();
-        assert!((ip1 - ip2).abs() < 1e-6, "clone should produce identical estimates");
+        assert!(
+            (ip1 - ip2).abs() < 1e-6,
+            "clone should produce identical estimates"
+        );
     }
 
     #[test]

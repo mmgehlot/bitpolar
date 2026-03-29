@@ -11,7 +11,10 @@ use crate::stats::DistortionMetrics;
 /// Thread-safe only when access is externally synchronized; the tracker
 /// is `Send` but not `Sync` (use `Mutex<DistortionTracker>` in async code).
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct DistortionTracker {
     /// EMA smoothing factor (0 < alpha ≤ 1)
     alpha: f64,
@@ -35,7 +38,13 @@ impl DistortionTracker {
     /// - `mse_threshold` — MSE value above which [`is_healthy`](Self::is_healthy) returns `false`.
     pub fn new(alpha: f64, mse_threshold: f64) -> Self {
         let alpha = alpha.clamp(1e-6, 1.0);
-        Self { alpha, mse_threshold, ema_mse: 0.0, ema_bias: 0.0, samples: 0 }
+        Self {
+            alpha,
+            mse_threshold,
+            ema_mse: 0.0,
+            ema_bias: 0.0,
+            samples: 0,
+        }
     }
 
     /// Record a single (estimated, ground_truth) pair.
