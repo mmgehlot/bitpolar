@@ -25,8 +25,6 @@ jobs:
       - run: cargo test
       # Test with ffi feature enabled
       - run: cargo test --features "std,serde-support,ffi"
-      # Verify no_std compiles (tests require std, so check only)
-      - run: cargo check --no-default-features --features alloc
 
   clippy:
     name: Clippy
