@@ -23,10 +23,10 @@ jobs:
           toolchain: ${{ matrix.rust }}
       # Test with default features (std + serde)
       - run: cargo test
-      # Test with all features (std + serde + simd + parallel + tracing + ffi)
+      # Test with ffi feature enabled
       - run: cargo test --features "std,serde-support,ffi"
-      # Test no_std with alloc (no ffi — ffi requires std)
-      - run: cargo test --no-default-features --features alloc
+      # Verify no_std compiles (tests require std, so check only)
+      - run: cargo check --no-default-features --features alloc
 
   clippy:
     name: Clippy
