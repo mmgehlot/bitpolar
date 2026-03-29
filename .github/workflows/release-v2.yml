@@ -352,7 +352,7 @@ jobs:
   # =========================================================================
   github-release:
     name: Create GitHub Release
-    if: always()
+    if: ${{ !cancelled() && needs.publish-crates.result == 'success' && needs.publish-c-library.result == 'success' }}
     needs:
       - publish-crates
       - publish-pypi
