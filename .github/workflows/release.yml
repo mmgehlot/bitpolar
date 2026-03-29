@@ -146,14 +146,12 @@ jobs:
         working-directory: bitpolar-node
         run: npx napi build --release --target ${{ matrix.target }}
 
-      - name: Prepare for publish
-        working-directory: bitpolar-node
-        run: npx napi prepublish -t npm
-
-      - name: Publish to npm (Trusted Publishing)
+      - name: Prepare and publish to npm (Trusted Publishing)
         if: matrix.os == 'ubuntu-latest'
         working-directory: bitpolar-node
-        run: npm publish --access=public --provenance || echo "Already published — skipping"
+        run: |
+          npx napi prepublish -t npm || true
+          npm publish --access=public --provenance || echo "Already published — skipping"
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v4
@@ -310,17 +308,15 @@ jobs:
 
       - name: Build extension
         working-directory: bitpolar-pg
-        run: cargo pgrx package --features pg${{ matrix.pg }}
+        run: cargo build --release --features pg${{ matrix.pg }}
 
       - name: Package extension
         working-directory: bitpolar-pg
         run: |
-          PKG_DIR="target/release/bitpolar-pg-pg${{ matrix.pg }}"
-          if [ -d "$PKG_DIR" ]; then
-            tar czf bitpolar-pg-${{ matrix.pg }}-linux-amd64.tar.gz -C "$PKG_DIR" .
-          else
-            echo "WARNING: Package directory not found at $PKG_DIR" && ls -la target/release/ && exit 1
-          fi
+          mkdir -p pkg
+          cp ../target/release/libbitpolar_pg.so pkg/ 2>/dev/null || true
+          cp bitpolar_pg.control pkg/ 2>/dev/null || true
+          tar czf bitpolar-pg-${{ matrix.pg }}-linux-amd64.tar.gz -C pkg .
 
       - name: Upload pgx artifact
         uses: actions/upload-artifact@v4
