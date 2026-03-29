@@ -357,8 +357,6 @@ jobs:
       - publish-npm-wasm
       - publish-npm-node
       - publish-c-library
-      - publish-maven
-      - publish-pgx
       - publish-go
       - publish-docker
     runs-on: ubuntu-latest
