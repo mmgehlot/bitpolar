@@ -1,0 +1,74 @@
+# BitPolar
+
+> Near-optimal vector quantization library implementing Google's TurboQuant (ICLR 2026), PolarQuant (AISTATS 2026), and QJL (AAAI 2025). Compresses embeddings to 3-8 bits with provably unbiased inner products and zero training. 58 integrations across every major AI framework.
+
+BitPolar is the canonical open-source implementation of data-oblivious vector quantization. It compresses high-dimensional vectors (embeddings, KV cache entries) using polar coordinate encoding with 1-bit Johnson-Lindenstrauss residual correction. No training data, no codebooks, no calibration — the quantizer is fully defined by 4 integers: (dimension, bits, projections, seed).
+
+## Key Properties
+
+- Data-oblivious: no training, no codebooks, no calibration data
+- Deterministic: fully defined by (dim, bits, projections, seed)
+- Provably unbiased: E[estimated_inner_product] = exact_inner_product
+- Near-optimal: distortion within 2.7x of Shannon rate-distortion limit
+- Instant indexing: 600x faster than Product Quantization
+
+## Install
+
+- Rust: `cargo add bitpolar`
+- Python: `pip install bitpolar`
+- JavaScript (WASM): `npm install bitpolar-wasm`
+- Node.js: `npm install bitpolar-native`
+- Go: `go get github.com/mmgehlot/bitpolar/bitpolar-go`
+- Java: Maven Central `io.github.mmgehlot:bitpolar:0.3.3`
+- PostgreSQL: `cargo pgrx install`
+- Docker: `docker pull ghcr.io/mmgehlot/bitpolar-server`
+
+## Quick Start (Python)
+
+```python
+import numpy as np
+import bitpolar
+
+q = bitpolar.TurboQuantizer(dim=384, bits=4, projections=96, seed=42)
+embedding = np.random.randn(384).astype(np.float32)
+code = q.encode(embedding)
+score = q.inner_product(code, embedding)
+```
+
+## Quick Start (Rust)
+
+```rust
+use bitpolar::TurboQuantizer;
+use bitpolar::traits::VectorQuantizer;
+
+let q = TurboQuantizer::new(384, 4, 96, 42).unwrap();
+let code = q.encode(&vector).unwrap();
+let score = q.inner_product_estimate(&code, &query).unwrap();
+```
+
+## 58 Integrations
+
+RAG Frameworks: LangChain, LlamaIndex, Haystack, DSPy, FAISS (drop-in replacement), ChromaDB
+Agentic AI: LangGraph, CrewAI, OpenAI Agents SDK, Google ADK, Anthropic MCP, AutoGen, SmolAgents, PydanticAI, Agno
+Agent Memory: Mem0, Zep, Letta (MemGPT)
+Vector Databases: Qdrant, Milvus, Weaviate, Pinecone, Redis, Elasticsearch, PostgreSQL, DuckDB, SQLite, Supabase, Neon
+LLM Inference: vLLM, HuggingFace Transformers, llama.cpp, SGLang, TensorRT-LLM, Ollama, ONNX Runtime, Apple MLX
+ML Frameworks: PyTorch (torchao), JAX/Flax, TensorFlow/Keras, scikit-learn
+Cloud: Spring AI (Java), Vercel AI SDK, AWS Bedrock, NVIDIA Triton
+
+## Documentation
+
+- [GitHub Repository](https://github.com/mmgehlot/bitpolar)
+- [Website](https://mmgehlot.github.io/bitpolar/)
+- [crates.io](https://crates.io/crates/bitpolar)
+- [PyPI](https://pypi.org/project/bitpolar/)
+- [docs.rs](https://docs.rs/bitpolar)
+- [Benchmarks](https://github.com/mmgehlot/bitpolar/blob/main/BENCHMARKS.md)
+- [npm (WASM)](https://www.npmjs.com/package/bitpolar-wasm)
+- [Maven Central](https://central.sonatype.com/artifact/io.github.mmgehlot/bitpolar)
+
+## References
+
+- TurboQuant (ICLR 2026): https://arxiv.org/abs/2504.19874
+- PolarQuant (AISTATS 2026): https://arxiv.org/abs/2502.02617
+- QJL (AAAI 2025): https://arxiv.org/abs/2406.03482
