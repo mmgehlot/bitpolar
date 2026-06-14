@@ -877,13 +877,15 @@ fn test_compact_trailing_bytes_tolerated() {
 // are computed from the format documentation:
 //
 // PolarCode  (dim=8, bits=4):
-//   version(1) + bits(1) + num_pairs(2) + radii(4×4=16) + angles(4×2=8) = 28 bytes
+//   v0x03: header(9) + radii(ceil(4×4/8)=2) + angles(ceil(4×4/8)=2) = 13 bytes
+//   (header = version+angle_bits+radii_bits+num_pairs(2)+scale(4); radii/angles
+//    bit-packed to radii_bits/angle_bits respectively)
 //
 // QjlSketch  (projections=8):
 //   version(1) + num_projections(2) + norm(4) + signs(ceil(8/8)=1) = 8 bytes
 //
 // TurboCode  (dim=8, bits=4, projections=8):
-//   version(1) + polar_len(4) + polar_payload(28) + qjl_payload(8) = 41 bytes
+//   version(1) + polar_len(4) + polar_payload(13) + qjl_payload(8) = 26 bytes
 #[test]
 fn test_compact_golden_vectors() {
     let dim = 8usize;
@@ -898,12 +900,14 @@ fn test_compact_golden_vectors() {
         let code = q.encode(&vector).unwrap();
         let bytes = code.to_compact_bytes();
 
-        // num_pairs = dim/2 = 4
-        // expected: 1 (version) + 1 (bits) + 2 (num_pairs) + 4*4 (radii) + 4*2 (angles) = 28
+        // num_pairs = dim/2 = 4. v0x03 format: header 9 (version+angle_bits+
+        // radii_bits+num_pairs(2)+scale(4)) + radii ceil(4*radii_bits/8) +
+        // angles ceil(4*angle_bits/8). With radii_bits=angle_bits=4:
+        // 9 + ceil(16/8)=2 + ceil(16/8)=2 = 13.
         assert_eq!(
             bytes.len(),
-            28,
-            "PolarCode golden byte length mismatch: expected 28, got {}",
+            13,
+            "PolarCode golden byte length mismatch: expected 13, got {}",
             bytes.len()
         );
 
@@ -947,11 +951,11 @@ fn test_compact_golden_vectors() {
         let code = q.encode(&vector).unwrap();
         let bytes = code.to_compact_bytes();
 
-        // expected: 1 (version) + 4 (polar_len u32) + 28 (polar payload) + 8 (qjl payload) = 41
+        // expected: 1 (version) + 4 (polar_len u32) + 13 (polar payload, v0x03) + 8 (qjl payload) = 26
         assert_eq!(
             bytes.len(),
-            41,
-            "TurboCode golden byte length mismatch: expected 41, got {}",
+            26,
+            "TurboCode golden byte length mismatch: expected 26, got {}",
             bytes.len()
         );
 
