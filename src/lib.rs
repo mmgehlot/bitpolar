@@ -194,4 +194,9 @@ pub use tiered::{Tier, TieredCode, TieredQuantization};
 ///
 /// Incremented when the wire format changes in a backward-incompatible way.
 /// Readers must reject versions they don't understand.
-pub const COMPACT_FORMAT_VERSION: u8 = 0x01;
+///
+/// v0x02: PolarCode now bit-packs angle indices to `bits` bits (was u16 each)
+/// and quantizes radii to a per-vector scale + `bits` bits (was lossless f32),
+/// so the serialized size scales with `bits` as intended (v0x01 was bit-width-
+/// invariant, which defeated compression — see CHANGELOG).
+pub const COMPACT_FORMAT_VERSION: u8 = 0x02;

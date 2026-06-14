@@ -536,20 +536,51 @@ mod tests {
 
     #[test]
     fn test_turbo_code_roundtrip() {
-        let q = TurboQuantizer::new(8, 4, 16, 42).unwrap();
+        let bits = 4u8;
+        let q = TurboQuantizer::new(8, bits, 16, 42).unwrap();
         let v: Vec<f32> = (0..8).map(|i| i as f32 * 0.3 - 1.0).collect();
         let code = q.encode(&v).unwrap();
         let bytes = code.to_compact_bytes();
         let decoded = TurboCode::from_compact_bytes(&bytes).unwrap();
-        assert_eq!(decoded.polar.radii, code.polar.radii);
+        // Angle indices + bits are lossless; radii are quantized to `bits` bits
+        // relative to the per-vector max (lossy within one step).
         assert_eq!(decoded.polar.angle_indices, code.polar.angle_indices);
         assert_eq!(decoded.polar.bits, code.polar.bits);
+        let scale = code.polar.radii.iter().copied().fold(0.0f32, f32::max);
+        let step = scale / ((1u32 << bits) - 1) as f32;
+        for (d, o) in decoded.polar.radii.iter().zip(code.polar.radii.iter()) {
+            assert!((d - o).abs() <= step + 1e-6, "radius {d} vs {o} > step {step}");
+        }
         assert_eq!(decoded.residual_sketch.signs, code.residual_sketch.signs);
         assert_eq!(
             decoded.residual_sketch.num_projections,
             code.residual_sketch.num_projections
         );
         assert_eq!(decoded.residual_sketch.norm, code.residual_sketch.norm);
+    }
+
+    #[test]
+    fn test_compact_size_scales_with_bits() {
+        // Regression for the v0x02 fix: the serialized size MUST shrink as `bits`
+        // drops (v0x01 was bit-width-invariant — radii lossless f32, angles u16 —
+        // which capped compression at ~1.2x vs f32 regardless of config).
+        let dim = 128;
+        let v: Vec<f32> = (0..dim).map(|i| (i as f32 * 0.01).sin()).collect();
+        let mut prev = usize::MAX;
+        for bits in [8u8, 4, 2, 1] {
+            let q = TurboQuantizer::new(dim, bits, 8, 42).unwrap();
+            let sz = q.encode(&v).unwrap().to_compact_bytes().len();
+            let ratio_f32 = (dim * 4) as f32 / sz as f32;
+            println!(
+                "bits={bits} compact_size={sz}B ratio_f32={ratio_f32:.2}x ratio_f16={:.2}x",
+                ratio_f32 / 2.0
+            );
+            assert!(
+                sz < prev,
+                "compact size at {bits} bits ({sz}) must be < higher bit-width ({prev})"
+            );
+            prev = sz;
+        }
     }
 
     #[test]

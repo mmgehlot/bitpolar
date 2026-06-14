@@ -212,30 +212,86 @@ impl PolarQuantizer {
 // Compact binary serialization for PolarCode
 // ---------------------------------------------------------------------------
 
+/// Pack `bits`-bit values (LSB-first) into a byte buffer. Values are masked to
+/// `bits` bits. `bits` must be in 1..=16.
+fn pack_bits(values: &[u16], bits: u8) -> Vec<u8> {
+    let bits = bits as usize;
+    let mut out = vec![0u8; (values.len() * bits).div_ceil(8)];
+    let mask: u32 = (1u32 << bits) - 1;
+    let mut bitpos = 0usize;
+    for &v in values {
+        let v = v as u32 & mask;
+        for b in 0..bits {
+            if (v >> b) & 1 == 1 {
+                out[bitpos / 8] |= 1 << (bitpos % 8);
+            }
+            bitpos += 1;
+        }
+    }
+    out
+}
+
+/// Inverse of [`pack_bits`]: read `count` values of `bits` bits each (LSB-first).
+fn unpack_bits(bytes: &[u8], count: usize, bits: u8) -> Vec<u16> {
+    let bits = bits as usize;
+    let mut out = Vec::with_capacity(count);
+    let mut bitpos = 0usize;
+    for _ in 0..count {
+        let mut v = 0u32;
+        for b in 0..bits {
+            let byte = bytes.get(bitpos / 8).copied().unwrap_or(0);
+            v |= (((byte >> (bitpos % 8)) & 1) as u32) << b;
+            bitpos += 1;
+        }
+        out.push(v as u16);
+    }
+    out
+}
+
 impl PolarCode {
     /// Serialize to compact binary.
     ///
-    /// Format:
+    /// Format (v0x02):
     /// ```text
-    /// [version: u8 = 0x01][bits: u8][num_pairs: u16 LE]
-    /// [radii: num_pairs × f32 LE][angle_indices: num_pairs × u16 LE]
+    /// [version: u8 = 0x02][bits: u8][num_pairs: u16 LE][radii_scale: f32 LE]
+    /// [radii_q: num_pairs × `bits` bits][angle_indices: num_pairs × `bits` bits]
     /// ```
+    /// Radii are quantized to `bits` bits relative to the per-vector max radius
+    /// (`radii_scale`); angle indices are bit-packed to `bits` bits (they are
+    /// already in `[0, 2^bits)` from the codebook). The serialized size therefore
+    /// scales with `bits`, unlike v0x01 which stored radii as lossless f32 and
+    /// angles as u16 (size invariant to `bits` — defeating compression).
     pub fn to_compact_bytes(&self) -> Vec<u8> {
         let num_pairs: u16 =
             self.radii.len().try_into().expect(
                 "PolarCode num_pairs exceeds u16::MAX; dimension too large for compact format",
             );
-        let mut out =
-            Vec::with_capacity(1 + 1 + 2 + self.radii.len() * 4 + self.angle_indices.len() * 2);
+        let bits = self.bits;
+        let max_q = ((1u32 << bits) - 1) as f32;
+        // Radii are magnitudes (>= 0); scale by the per-vector max.
+        let scale = self.radii.iter().copied().fold(0.0f32, f32::max);
+        let radii_q: Vec<u16> = self
+            .radii
+            .iter()
+            .map(|&r| {
+                if scale > 0.0 {
+                    (r / scale * max_q).round().clamp(0.0, max_q) as u16
+                } else {
+                    0
+                }
+            })
+            .collect();
+
+        let radii_packed = pack_bits(&radii_q, bits);
+        let angles_packed = pack_bits(&self.angle_indices, bits);
+
+        let mut out = Vec::with_capacity(8 + radii_packed.len() + angles_packed.len());
         out.push(crate::COMPACT_FORMAT_VERSION);
-        out.push(self.bits);
+        out.push(bits);
         out.extend_from_slice(&num_pairs.to_le_bytes());
-        for &r in &self.radii {
-            out.extend_from_slice(&r.to_le_bytes());
-        }
-        for &a in &self.angle_indices {
-            out.extend_from_slice(&a.to_le_bytes());
-        }
+        out.extend_from_slice(&scale.to_le_bytes());
+        out.extend_from_slice(&radii_packed);
+        out.extend_from_slice(&angles_packed);
         out
     }
 
@@ -249,8 +305,9 @@ impl PolarCode {
             reason: reason.to_string(),
         };
 
-        if bytes.len() < 4 {
-            return Err(err("buffer too short: need at least 4 bytes"));
+        // header: version(1) + bits(1) + num_pairs(2) + radii_scale(4) = 8
+        if bytes.len() < 8 {
+            return Err(err("buffer too short: need at least 8 bytes"));
         }
         if bytes[0] != crate::COMPACT_FORMAT_VERSION {
             return Err(err(&format!(
@@ -264,13 +321,11 @@ impl PolarCode {
             return Err(err(&format!("invalid bit width {bits}: must be 1..=16")));
         }
         let num_pairs = u16::from_le_bytes([bytes[2], bytes[3]]) as usize;
+        let scale = f32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
 
-        // 4 bytes header + num_pairs * f32 (4 bytes) + num_pairs * u16 (2 bytes)
-        let payload_size = num_pairs
-            .checked_mul(4)
-            .and_then(|r| r.checked_add(num_pairs.checked_mul(2)?))
-            .ok_or_else(|| err("num_pairs causes size overflow"))?;
-        let expected_len = 4 + payload_size;
+        // Each array is num_pairs values of `bits` bits.
+        let packed_len = (num_pairs * bits as usize).div_ceil(8);
+        let expected_len = 8 + 2 * packed_len;
         if bytes.len() < expected_len {
             return Err(err(&format!(
                 "buffer too short: need {expected_len}, got {}",
@@ -278,22 +333,21 @@ impl PolarCode {
             )));
         }
 
-        let mut radii = Vec::with_capacity(num_pairs);
-        let radii_start = 4;
-        for i in 0..num_pairs {
-            let off = radii_start + i * 4;
-            let r =
-                f32::from_le_bytes([bytes[off], bytes[off + 1], bytes[off + 2], bytes[off + 3]]);
-            radii.push(r);
-        }
+        let radii_packed = &bytes[8..8 + packed_len];
+        let angles_packed = &bytes[8 + packed_len..8 + 2 * packed_len];
 
-        let angles_start = radii_start + num_pairs * 4;
-        let mut angle_indices = Vec::with_capacity(num_pairs);
-        for i in 0..num_pairs {
-            let off = angles_start + i * 2;
-            let a = u16::from_le_bytes([bytes[off], bytes[off + 1]]);
-            angle_indices.push(a);
-        }
+        let max_q = ((1u32 << bits) - 1) as f32;
+        let radii: Vec<f32> = unpack_bits(radii_packed, num_pairs, bits)
+            .into_iter()
+            .map(|q| {
+                if scale > 0.0 {
+                    q as f32 / max_q * scale
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        let angle_indices = unpack_bits(angles_packed, num_pairs, bits);
 
         Ok(Self {
             radii,
@@ -502,14 +556,26 @@ mod tests {
 
     #[test]
     fn test_polar_code_roundtrip() {
-        let q = PolarQuantizer::new(8, 4).unwrap();
+        let bits = 4u8;
+        let q = PolarQuantizer::new(8, bits).unwrap();
         let v: Vec<f32> = (0..8).map(|i| i as f32 * 0.25 - 1.0).collect();
         let code = q.encode(&v).unwrap();
         let bytes = code.to_compact_bytes();
         let decoded = PolarCode::from_compact_bytes(&bytes).unwrap();
         assert_eq!(decoded.bits, code.bits);
-        assert_eq!(decoded.radii, code.radii);
+        // Angle indices are bit-packed losslessly (already in [0, 2^bits)).
         assert_eq!(decoded.angle_indices, code.angle_indices);
+        // Radii are quantized to `bits` bits relative to the per-vector max, so
+        // round-trip is lossy within one quantization step.
+        let scale = code.radii.iter().copied().fold(0.0f32, f32::max);
+        let step = scale / ((1u32 << bits) - 1) as f32;
+        assert_eq!(decoded.radii.len(), code.radii.len());
+        for (d, o) in decoded.radii.iter().zip(code.radii.iter()) {
+            assert!(
+                (d - o).abs() <= step + 1e-6,
+                "radius {d} vs {o} exceeds quantization step {step}"
+            );
+        }
     }
 
     #[test]
