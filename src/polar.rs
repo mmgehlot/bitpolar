@@ -32,6 +32,8 @@ pub struct PolarCode {
     pub(crate) angle_indices: Vec<u16>,
     /// Bit width used to quantize angles
     pub(crate) bits: u8,
+    /// Bit width used to quantize radii in the compact format (defaults to `bits`).
+    pub(crate) radii_bits: u8,
 }
 
 impl PolarCode {
@@ -69,6 +71,10 @@ impl PolarCode {
 pub struct PolarQuantizer {
     dim: usize,
     bits: u8,
+    /// Bit width for radii (magnitude) quantization in the compact format.
+    /// Independent of angle `bits`: magnitude and direction precision can be
+    /// tuned separately. Defaults to `bits`.
+    radii_bits: u8,
     codebook: LloydMaxCodebook,
 }
 
@@ -99,8 +105,22 @@ impl PolarQuantizer {
         Ok(Self {
             dim,
             bits,
+            radii_bits: bits,
             codebook,
         })
+    }
+
+    /// Set the radii (magnitude) quantization bit width independently of the
+    /// angle `bits`. Magnitude precision drives reconstruction magnitude error;
+    /// direction (angle) precision drives cosine. Tuning them separately lets a
+    /// caller trade size for quality more finely (e.g. fewer angle bits but more
+    /// radii bits, or vice versa). `n` must be in 1..=16.
+    pub fn with_radii_bits(mut self, n: u8) -> Result<Self> {
+        if n == 0 || n > 16 {
+            return Err(TurboQuantError::InvalidBitWidth(n));
+        }
+        self.radii_bits = n;
+        Ok(self)
     }
 
     /// The dimension this quantizer was created for.
@@ -146,6 +166,7 @@ impl PolarQuantizer {
             radii,
             angle_indices,
             bits: self.bits,
+            radii_bits: self.radii_bits,
         }
     }
 
@@ -261,23 +282,26 @@ fn unpack_bits(bytes: &[u8], count: usize, bits: u8) -> Vec<u16> {
 impl PolarCode {
     /// Serialize to compact binary.
     ///
-    /// Format (v0x02):
+    /// Format (v0x03):
     /// ```text
-    /// [version: u8 = 0x02][bits: u8][num_pairs: u16 LE][radii_scale: f32 LE]
-    /// [radii_q: num_pairs × `bits` bits][angle_indices: num_pairs × `bits` bits]
+    /// [version: u8 = 0x03][angle_bits: u8][radii_bits: u8][num_pairs: u16 LE]
+    /// [radii_scale: f32 LE]
+    /// [radii_q: num_pairs × `radii_bits` bits][angle_indices: num_pairs × `angle_bits` bits]
     /// ```
-    /// Radii are quantized to `bits` bits relative to the per-vector max radius
-    /// (`radii_scale`); angle indices are bit-packed to `bits` bits (they are
-    /// already in `[0, 2^bits)` from the codebook). The serialized size therefore
-    /// scales with `bits`, unlike v0x01 which stored radii as lossless f32 and
-    /// angles as u16 (size invariant to `bits` — defeating compression).
+    /// Radii are quantized to `radii_bits` bits relative to the per-vector max
+    /// radius (`radii_scale`); angle indices are bit-packed to `angle_bits` bits
+    /// (already in `[0, 2^angle_bits)` from the codebook). Magnitude and direction
+    /// precision are tuned independently. (v0x01 stored radii as lossless f32 and
+    /// angles as u16 — size invariant to bits, defeating compression; v0x02 tied
+    /// radii and angle widths together.)
     pub fn to_compact_bytes(&self) -> Vec<u8> {
         let num_pairs: u16 =
             self.radii.len().try_into().expect(
                 "PolarCode num_pairs exceeds u16::MAX; dimension too large for compact format",
             );
-        let bits = self.bits;
-        let max_q = ((1u32 << bits) - 1) as f32;
+        let angle_bits = self.bits;
+        let radii_bits = self.radii_bits;
+        let max_q = ((1u32 << radii_bits) - 1) as f32;
         // Radii are magnitudes (>= 0); scale by the per-vector max.
         let scale = self.radii.iter().copied().fold(0.0f32, f32::max);
         let radii_q: Vec<u16> = self
@@ -292,12 +316,13 @@ impl PolarCode {
             })
             .collect();
 
-        let radii_packed = pack_bits(&radii_q, bits);
-        let angles_packed = pack_bits(&self.angle_indices, bits);
+        let radii_packed = pack_bits(&radii_q, radii_bits);
+        let angles_packed = pack_bits(&self.angle_indices, angle_bits);
 
-        let mut out = Vec::with_capacity(8 + radii_packed.len() + angles_packed.len());
+        let mut out = Vec::with_capacity(9 + radii_packed.len() + angles_packed.len());
         out.push(crate::COMPACT_FORMAT_VERSION);
-        out.push(bits);
+        out.push(angle_bits);
+        out.push(radii_bits);
         out.extend_from_slice(&num_pairs.to_le_bytes());
         out.extend_from_slice(&scale.to_le_bytes());
         out.extend_from_slice(&radii_packed);
@@ -315,9 +340,9 @@ impl PolarCode {
             reason: reason.to_string(),
         };
 
-        // header: version(1) + bits(1) + num_pairs(2) + radii_scale(4) = 8
-        if bytes.len() < 8 {
-            return Err(err("buffer too short: need at least 8 bytes"));
+        // header: version(1) + angle_bits(1) + radii_bits(1) + num_pairs(2) + scale(4) = 9
+        if bytes.len() < 9 {
+            return Err(err("buffer too short: need at least 9 bytes"));
         }
         if bytes[0] != crate::COMPACT_FORMAT_VERSION {
             return Err(err(&format!(
@@ -326,21 +351,29 @@ impl PolarCode {
                 crate::COMPACT_FORMAT_VERSION
             )));
         }
-        let bits = bytes[1];
-        if bits == 0 || bits > 16 {
-            return Err(err(&format!("invalid bit width {bits}: must be 1..=16")));
+        let angle_bits = bytes[1];
+        let radii_bits = bytes[2];
+        if angle_bits == 0 || angle_bits > 16 {
+            return Err(err(&format!(
+                "invalid angle bit width {angle_bits}: must be 1..=16"
+            )));
         }
-        let num_pairs = u16::from_le_bytes([bytes[2], bytes[3]]) as usize;
-        let scale = f32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+        if radii_bits == 0 || radii_bits > 16 {
+            return Err(err(&format!(
+                "invalid radii bit width {radii_bits}: must be 1..=16"
+            )));
+        }
+        let num_pairs = u16::from_le_bytes([bytes[3], bytes[4]]) as usize;
+        let scale = f32::from_le_bytes([bytes[5], bytes[6], bytes[7], bytes[8]]);
         // Reject a hostile/corrupt scale: a non-finite or negative scale would
         // produce NaN/inf radii on dequantization and silently corrupt decode.
         if !scale.is_finite() || scale < 0.0 {
             return Err(err("radii_scale is not finite or is negative"));
         }
 
-        // Each array is num_pairs values of `bits` bits.
-        let packed_len = (num_pairs * bits as usize).div_ceil(8);
-        let expected_len = 8 + 2 * packed_len;
+        let radii_packed_len = (num_pairs * radii_bits as usize).div_ceil(8);
+        let angles_packed_len = (num_pairs * angle_bits as usize).div_ceil(8);
+        let expected_len = 9 + radii_packed_len + angles_packed_len;
         if bytes.len() < expected_len {
             return Err(err(&format!(
                 "buffer too short: need {expected_len}, got {}",
@@ -348,11 +381,11 @@ impl PolarCode {
             )));
         }
 
-        let radii_packed = &bytes[8..8 + packed_len];
-        let angles_packed = &bytes[8 + packed_len..8 + 2 * packed_len];
+        let radii_packed = &bytes[9..9 + radii_packed_len];
+        let angles_packed = &bytes[9 + radii_packed_len..9 + radii_packed_len + angles_packed_len];
 
-        let max_q = ((1u32 << bits) - 1) as f32;
-        let radii: Vec<f32> = unpack_bits(radii_packed, num_pairs, bits)
+        let max_q = ((1u32 << radii_bits) - 1) as f32;
+        let radii: Vec<f32> = unpack_bits(radii_packed, num_pairs, radii_bits)
             .into_iter()
             .map(|q| {
                 if scale > 0.0 {
@@ -362,12 +395,13 @@ impl PolarCode {
                 }
             })
             .collect();
-        let angle_indices = unpack_bits(angles_packed, num_pairs, bits);
+        let angle_indices = unpack_bits(angles_packed, num_pairs, angle_bits);
 
         Ok(Self {
             radii,
             angle_indices,
-            bits,
+            bits: angle_bits,
+            radii_bits,
         })
     }
 }
@@ -615,8 +649,9 @@ mod tests {
         let q = PolarQuantizer::new(4, 4).unwrap();
         let code = q.encode(&[0.5_f32, -0.3, 0.1, 0.2]).unwrap();
         let mut bytes = code.to_compact_bytes();
-        // Overwrite radii_scale (bytes 4..8) with +inf.
-        bytes[4..8].copy_from_slice(&f32::INFINITY.to_le_bytes());
+        // Overwrite radii_scale with +inf. Header (v0x03): version(1) angle_bits(1)
+        // radii_bits(1) num_pairs(2) -> scale at offset 5..9.
+        bytes[5..9].copy_from_slice(&f32::INFINITY.to_le_bytes());
         assert!(PolarCode::from_compact_bytes(&bytes).is_err());
     }
 

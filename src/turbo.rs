@@ -104,6 +104,14 @@ impl TurboQuantizer {
         })
     }
 
+    /// Set the radii (magnitude) quantization bit width independently of the
+    /// angle `bits`, for tuning the magnitude/direction precision tradeoff.
+    /// Defaults to `bits`. `n` must be in 1..=16.
+    pub fn with_radii_bits(mut self, n: u8) -> Result<Self> {
+        self.polar = self.polar.with_radii_bits(n)?;
+        Ok(self)
+    }
+
     /// The vector dimension.
     pub fn dim(&self) -> usize {
         self.dim
@@ -584,6 +592,47 @@ mod tests {
                 "compact size at {bits} bits ({sz}) must be < higher bit-width ({prev})"
             );
             prev = sz;
+        }
+    }
+
+    #[test]
+    fn test_radii_angle_budget_frontier() {
+        // Map the size/quality frontier across independent angle vs radii bit
+        // budgets, to pick a good default. Measures the LOSSY serialized path
+        // (encode -> to_compact_bytes -> from_compact_bytes -> decode).
+        let dim = 128;
+        // Deterministic vector with a few per-channel outliers (KV-key-like).
+        let mut v: Vec<f32> = (0..dim)
+            .map(|i| (i as f32 * 0.137).sin() * 0.5 + (i as f32 * 0.0193).cos() * 0.3)
+            .collect();
+        for k in 0..(dim / 20) {
+            v[(k * 17 + 3) % dim] *= 18.0; // outlier channels
+        }
+        let cosine = |a: &[f32], b: &[f32]| -> f32 {
+            let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+            let na: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+            let nb: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if na < 1e-12 || nb < 1e-12 { 0.0 } else { dot / (na * nb) }
+        };
+
+        println!("angle radii  size  ratio_f16  cosine");
+        for &ab in &[1u8, 2, 3, 4] {
+            for &rb in &[2u8, 4, 6, 8] {
+                let q = TurboQuantizer::new(dim, ab, 4, 42)
+                    .unwrap()
+                    .with_radii_bits(rb)
+                    .unwrap();
+                let code = q.encode(&v).unwrap();
+                let bytes = code.to_compact_bytes();
+                let back = TurboCode::from_compact_bytes(&bytes).unwrap();
+                let decoded = q.decode(&back);
+                let ratio_f16 = (dim * 2) as f32 / bytes.len() as f32;
+                println!(
+                    "{ab:>5} {rb:>5} {:>5}  {ratio_f16:>8.2}x  {:.4}",
+                    bytes.len(),
+                    cosine(&v, &decoded)
+                );
+            }
         }
     }
 
