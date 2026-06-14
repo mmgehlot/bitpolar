@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-06-14
+
+### Fixed
+- **Compact serialization was bit-width-invariant** (`PolarCode`): radii were
+  stored as lossless f32 and angle indices as u16 regardless of `bits`, so the
+  serialized size — and thus compression ratio — never changed with the
+  configured bit-width. On real LLM KV caches this capped compression at ~1.2x
+  vs f32 (expansion vs f16). Now bit-packs angles and quantizes radii (format
+  v0x03), so size scales with bit-width as intended.
+- `polar::encode`: clamp radius to finite (large-but-finite inputs could overflow
+  `x²+y²` to inf → NaN reconstruction).
+- `polar::from_compact_bytes`: reject non-finite/negative `radii_scale`.
+- `qjl::inner_product_estimate{,_with_norm}`: return an error (was a panic) on a
+  sketch whose projection count differs from the quantizer's.
+- `turbo::from_compact_bytes`: `checked_add` on the polar length (32-bit overflow).
+- `kv_cache::evict_outside_window`: trim keys and values by the same offset.
+
+### Added
+- **Independent radii vs angle bit budgets** (`with_radii_bits`): magnitude and
+  direction precision tuned separately. For cosine-optimized workloads (KV
+  caches), radii compress hard at ~2 bits for ~50% more ratio at near-identical
+  quality.
+
+### Changed
+- `tiered::Tier` is now `#[repr(u8)]` with stable discriminants (serialized as
+  `u8` by `AdaptiveCode::to_bytes`).
+- `COMPACT_FORMAT_VERSION` 0x01 → 0x03 (breaking wire format; readers reject old).
+
 ## [0.2.0] - 2026-03-27
 
 ### Added
