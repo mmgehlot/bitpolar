@@ -44,13 +44,17 @@ use crate::turbo::{TurboCode, TurboQuantizer};
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+// Stable discriminants: AdaptiveCode::to_bytes serializes `Tier as u8`, so the
+// values are a wire contract (0=Hot, 1=Warm, 2=Cold) and must not drift if
+// variants are reordered.
+#[repr(u8)]
 pub enum Tier {
     /// 8-bit quantization — highest accuracy, largest codes.
-    Hot,
+    Hot = 0,
     /// 4-bit quantization — balanced accuracy and size.
-    Warm,
+    Warm = 1,
     /// 3-bit quantization — maximum compression, lowest accuracy.
-    Cold,
+    Cold = 2,
 }
 
 // ---------------------------------------------------------------------------

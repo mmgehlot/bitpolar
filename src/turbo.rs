@@ -430,8 +430,12 @@ impl TurboCode {
             return Err(err("buffer too short for polar length prefix"));
         }
         let polar_len = u32::from_le_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as usize;
-        let polar_start = 5;
-        let polar_end = polar_start + polar_len;
+        let polar_start = 5usize;
+        // checked_add: on 32-bit targets polar_start + polar_len could wrap and
+        // defeat the bounds check below, leading to a slice-range panic.
+        let polar_end = polar_start
+            .checked_add(polar_len)
+            .ok_or_else(|| err("polar_len overflows address space"))?;
         if bytes.len() < polar_end {
             return Err(err("buffer too short for polar payload"));
         }

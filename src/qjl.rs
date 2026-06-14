@@ -379,6 +379,15 @@ impl QjlQuantizer {
                 actual: query.len(),
             });
         }
+        // A sketch with fewer projections than this quantizer (e.g. deserialized
+        // from a different config) would make the loop index past `sketch.signs`
+        // and panic; reject it instead.
+        if sketch.num_projections != self.num_projections {
+            return Err(TurboQuantError::DimensionMismatch {
+                expected: self.num_projections,
+                actual: sketch.num_projections,
+            });
+        }
         validate_finite(query)?;
 
         // If either vector is zero, IP is zero
@@ -425,6 +434,13 @@ impl QjlQuantizer {
             return Err(TurboQuantError::DimensionMismatch {
                 expected: self.dim,
                 actual: query.len(),
+            });
+        }
+        // See inner_product_estimate: a projection-count mismatch would panic.
+        if sketch.num_projections != self.num_projections {
+            return Err(TurboQuantError::DimensionMismatch {
+                expected: self.num_projections,
+                actual: sketch.num_projections,
             });
         }
         validate_finite(query)?;

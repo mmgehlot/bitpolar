@@ -1,8 +1,10 @@
 //! PolarQuant: polar coordinate vector encoding (Stage 1 of TurboQuant).
 //!
 //! Groups the `d`-dimensional rotated vector into `d/2` pairs, converts each
-//! pair `(x, y)` to polar coordinates `(r, θ)`, stores radii losslessly as
-//! f32, and quantizes angles to `bits` bits using a Lloyd-Max codebook.
+//! pair `(x, y)` to polar coordinates `(r, θ)`, and quantizes angles to `bits`
+//! bits using a Lloyd-Max codebook. In the compact serialization (v0x02) radii
+//! are quantized to a per-vector scale + `bits` bits and angle indices are
+//! bit-packed to `bits` bits (the in-memory `PolarCode` keeps f32 radii).
 
 use crate::codebook::LloydMaxCodebook;
 use crate::error::{validate_finite, Result, TurboQuantError};
@@ -14,14 +16,17 @@ use crate::traits::{SerializableCode, VectorQuantizer};
 
 /// Compressed representation produced by [`PolarQuantizer`].
 ///
-/// Contains lossless f32 radii and quantized angle indices.
+/// Holds f32 radii and quantized angle indices in memory. NOTE: the compact
+/// serialization (v0x02) quantizes radii lossily (per-vector scale + `bits`
+/// bits); only the in-memory form here keeps full-precision radii.
 #[derive(Debug, Clone)]
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
 )]
 pub struct PolarCode {
-    /// Lossless radii for each coordinate pair (length = dim/2)
+    /// Radii for each coordinate pair (length = dim/2). Full-precision in memory;
+    /// quantized in the compact serialization.
     pub(crate) radii: Vec<f32>,
     /// Quantized angle indices (length = dim/2)
     pub(crate) angle_indices: Vec<u16>,
@@ -121,7 +126,12 @@ impl PolarQuantizer {
         for i in 0..pairs {
             let x = vector[2 * i];
             let y = vector[2 * i + 1];
+            // x*x + y*y can overflow to +inf for large-but-finite components
+            // (|x| > ~1.8e19), which passed validate_finite. sqrt(inf)=inf would
+            // then propagate NaN through radii scaling/decode. Clamp to the max
+            // finite radius so reconstruction stays finite (monotonic, lossy).
             let r = crate::compat::math::sqrtf(x * x + y * y);
+            let r = if r.is_finite() { r } else { f32::MAX };
             let theta = crate::compat::math::atan2f(y, x); // in [-π, π]
             radii.push(r);
             // Map θ from [-π, π] to a Gaussian-like value for the codebook.
@@ -322,6 +332,11 @@ impl PolarCode {
         }
         let num_pairs = u16::from_le_bytes([bytes[2], bytes[3]]) as usize;
         let scale = f32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+        // Reject a hostile/corrupt scale: a non-finite or negative scale would
+        // produce NaN/inf radii on dequantization and silently corrupt decode.
+        if !scale.is_finite() || scale < 0.0 {
+            return Err(err("radii_scale is not finite or is negative"));
+        }
 
         // Each array is num_pairs values of `bits` bits.
         let packed_len = (num_pairs * bits as usize).div_ceil(8);
@@ -576,6 +591,33 @@ mod tests {
                 "radius {d} vs {o} exceeds quantization step {step}"
             );
         }
+    }
+
+    #[test]
+    fn test_encode_huge_finite_components_no_nan() {
+        // Components are finite but x*x overflows f32 -> r would be inf -> NaN on
+        // decode. Encoder must clamp so decode stays finite.
+        let q = PolarQuantizer::new(4, 4).unwrap();
+        let v = vec![3.0e38_f32, 3.0e38, 0.0, 0.0];
+        let code = q.encode(&v).unwrap();
+        for r in &code.radii {
+            assert!(r.is_finite(), "radius must be finite, got {r}");
+        }
+        let bytes = code.to_compact_bytes();
+        let back = PolarCode::from_compact_bytes(&bytes).unwrap();
+        for x in q.decode(&back) {
+            assert!(x.is_finite(), "decoded value must be finite");
+        }
+    }
+
+    #[test]
+    fn test_from_compact_bytes_rejects_nonfinite_scale() {
+        let q = PolarQuantizer::new(4, 4).unwrap();
+        let code = q.encode(&[0.5_f32, -0.3, 0.1, 0.2]).unwrap();
+        let mut bytes = code.to_compact_bytes();
+        // Overwrite radii_scale (bytes 4..8) with +inf.
+        bytes[4..8].copy_from_slice(&f32::INFINITY.to_le_bytes());
+        assert!(PolarCode::from_compact_bytes(&bytes).is_err());
     }
 
     #[test]

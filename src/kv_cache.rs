@@ -223,20 +223,14 @@ impl KvCacheCompressor {
     }
 
     /// Evict tokens outside the sliding window, keeping only the last `window_size`.
+    ///
+    /// Keys and values are trimmed identically by the same offset, preserving the
+    /// `keys.len() == values.len()` invariant.
     pub fn evict_outside_window(&mut self, window_size: usize) {
         if self.keys.len() > window_size {
             let start = self.keys.len() - window_size;
             self.keys = self.keys.split_off(start);
-            self.values = self.values.split_off(0); // values already correct length
-            // Fix: both must be trimmed identically
-            let vstart = if self.values.len() > window_size {
-                self.values.len() - window_size
-            } else {
-                0
-            };
-            if vstart > 0 {
-                self.values = self.values.split_off(vstart);
-            }
+            self.values = self.values.split_off(start);
         }
     }
 
@@ -1004,6 +998,24 @@ mod tests {
 
         assert_eq!(sw.total_tokens_seen(), 5);
         assert_eq!(sw.window_len(), 3); // only last 3 kept
+    }
+
+    #[test]
+    fn test_evict_outside_window_keeps_keys_values_symmetric() {
+        // Regression: evict_outside_window must trim keys AND values by the same
+        // offset (the previous implementation used a confusing split_off(0) that
+        // could be misread as dropping all values).
+        let config = sample_config();
+        let mut c = KvCacheCompressor::new(&config).unwrap();
+        for i in 0..5 {
+            let k = vec![(i as f32) * 0.1 + 0.1; 8];
+            let v = vec![(i as f32) * 0.1 + 0.2; 8];
+            c.push(&k, &v).unwrap();
+        }
+        c.evict_outside_window(3);
+        assert_eq!(c.key_codes().len(), 3);
+        assert_eq!(c.value_codes().len(), 3, "values must be trimmed with keys");
+        assert_eq!(c.decode_values().len(), 3);
     }
 
     // --- Model cache tests ---
