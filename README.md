@@ -5,7 +5,7 @@
 <h1 align="center">BitPolar</h1>
 
 <p align="center">
-  Near-optimal vector quantization with zero training overhead
+  An independent open-source implementation of training-free vector quantization (TurboQuant · PolarQuant · QJL)
 </p>
 
 <p align="center">

@@ -8,7 +8,7 @@ version = "0.3.3"
 requires-python = ">=3.9"
 dependencies = ["numpy>=1.21"]
 readme = "README.md"
-description = "Near-optimal vector quantization — compress embeddings to 3-8 bits with provably unbiased inner products. No training needed. 58 integrations."
+description = "An independent implementation of training-free vector quantization (TurboQuant/PolarQuant/QJL) — compress embeddings to 3-8 bits with unbiased inner products, no calibration data. 58 integrations."
 license = { text = "MIT OR Apache-2.0" }
 authors = [{ name = "Manmohan Gehlot", email = "mmgehlot@gmail.com" }]
 keywords = ["quantization", "vector-search", "compression", "machine-learning", "embeddings", "faiss", "langchain", "rag"]

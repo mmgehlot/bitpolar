@@ -1,0 +1,16 @@
+BitPolar
+Copyright the BitPolar authors.
+
+BitPolar is an independent open-source implementation of vector-quantization
+methods introduced in the following publications. These algorithms are the work
+of their respective authors and institutions; BitPolar claims no authorship of,
+or rights in, the underlying methods. BitPolar provides an independent
+implementation for interoperability and research, and credits the original work:
+
+  - TurboQuant — Zandieh et al., arXiv:2504.19874 (ICLR 2026)
+  - PolarQuant — arXiv:2502.02617 (AISTATS 2026)
+  - QJL        — arXiv:2406.03482 (AAAI 2025)
+
+Method names and any trademarks are the property of their respective owners and
+are used here only to identify the methods being implemented. BitPolar is not
+affiliated with or endorsed by the authors or their institutions.
