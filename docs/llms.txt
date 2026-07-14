@@ -1,6 +1,6 @@
 # BitPolar
 
-> Near-optimal vector quantization library implementing Google's TurboQuant (ICLR 2026), PolarQuant (AISTATS 2026), and QJL (AAAI 2025). Compresses embeddings to 3-8 bits with provably unbiased inner products and zero training. 58 integrations across every major AI framework.
+> Open-source vector quantization library implementing published methods — TurboQuant (ICLR 2026), PolarQuant (AISTATS 2026), and QJL (AAAI 2025). Compresses embeddings to 3-8 bits with provably unbiased inner products and no training. Adapters for popular AI frameworks.
 
 BitPolar is the canonical open-source implementation of data-oblivious vector quantization. It compresses high-dimensional vectors (embeddings, KV cache entries) using polar coordinate encoding with 1-bit Johnson-Lindenstrauss residual correction. No training data, no codebooks, no calibration — the quantizer is fully defined by 4 integers: (dimension, bits, projections, seed).
 
@@ -46,7 +46,7 @@ let code = q.encode(&vector).unwrap();
 let score = q.inner_product_estimate(&code, &query).unwrap();
 ```
 
-## 58 Integrations
+## Works with your stack
 
 RAG Frameworks: LangChain, LlamaIndex, Haystack, DSPy, FAISS (drop-in replacement), ChromaDB
 Agentic AI: LangGraph, CrewAI, OpenAI Agents SDK, Google ADK, Anthropic MCP, AutoGen, SmolAgents, PydanticAI, Agno
